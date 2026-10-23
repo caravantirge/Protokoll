@@ -1,0 +1,29 @@
+1. Kritik: Garantieanträge bleiben oft wochenlang liegen, weil unklar ist, wer sie beim Hersteller einreicht.
+Lösung: Feste Zuständigkeit im Teiledienst, jeden Montag Liste der offenen Anträge. Offen: Wer vertritt im Urlaub?
+2. Kritik: Bestellte Ersatzteile werden nicht dem Auftrag zugeordnet, Fahrzeuge stehen dadurch länger.
+Lösung: Teile bei Wareneingang mit Auftragsnummer etikettieren und sofort im System verbuchen.
+3. Kritik: Arbeitsaufträge enthalten zu wenig Infos zum Kundenwunsch.
+Lösung: Pflichtfelder in der Auftragsannahme und eine kurze Checkliste für die Annahme.
+Offen: Welche Felder sind wirklich Pflicht?
+4. Kritik: Fotos von Schäden werden nicht einheitlich abgelegt.
+Lösung: Fotodokumentation mit dem Tablet direkt im Auftrag.
+5. Kritik: Die Werkstattplanung wird ständig durch Zwischenaufträge umgeworfen.
+Lösung: Täglich fester Puffer von zwei Stunden für Notfälle, der Rest wird verbindlich geplant.
+6. Kritik: In der Saison zu wenig Stellplätze auf dem Hof, viel Rangieren.
+Lösung: Hofplan mit festen Zonen (Annahme / wartet auf Teile / fertig).
+7. Kritik: Neue Kollegen werden kaum eingearbeitet.
+Lösung: Einarbeitungsplan mit Paten für die ersten vier Wochen.
+8. Kritik: Herstellerschulungen werden selten besucht, weil niemand freigestellt wird.
+Lösung: Jahresplan für Schulungen, Termine früh blocken. Offen: Budget pro Jahr?
+9. Kritik: Der Verkauf sagt Kunden Termine zu, ohne mit der Werkstatt zu sprechen.
+Lösung: Terminzusagen nur nach Blick in den Werkstattplaner, kurze Absprache per Telefon.
+10. Kritik: Rückmeldungen an Kunden zum Reparaturstand kommen zu spät.
+Lösung: Bei Verzögerungen feste Rückmeldung bis 15 Uhr am selben Tag.
+11. Kritik: Neufahrzeuge werden bei Anlieferung nicht vollständig geprüft, Transportschäden fallen erst bei der Übergabe auf.
+Lösung: Eingangscheck mit Fotos innerhalb von 24 Stunden nach Anlieferung. Offen: Wer unterschreibt den Lieferschein?
+12. Kritik: Übergabetermine für Neufahrzeuge sind zu knapp geplant.
+Lösung: Mindestens drei Werktage zwischen Anlieferung und Übergabe.
+13. Kritik: Werkzeug und Messgeräte fehlen oder sind defekt.
+Lösung: Werkzeugliste, monatliche Prüfung und ein festes Budget für Ersatz.
+14. Kritik: Pausenraum ist in schlechtem Zustand.
+Lösung: Kleine Renovierung und ein Putzplan.

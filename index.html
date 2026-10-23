@@ -1,0 +1,2444 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Sicherheit: Verbindungen nur zu Microsoft 365 (Anmeldung & OneDrive) – sonst zu keinem Server. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://login.microsoftonline.com https://graph.microsoft.com https://*.sharepoint.com; font-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Protokoll">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>Besprechungsprotokoll</title>
+<style>
+:root{
+  --bg:#f2f2f7; --surface:#ffffff; --fill:rgba(118,118,128,.12); --fill-2:rgba(118,118,128,.08);
+  --sep:rgba(60,60,67,.17); --text:#1c1c1e; --muted:#86868b; --muted-2:#6e6e73;
+  --blue:#007aff; --blue-soft:rgba(0,122,255,.1); --on-blue:#ffffff;
+  --green:#248a3d; --green-dot:#34c759; --orange:#c45f00; --orange-dot:#ff9500; --red:#ff3b30; --gray-dot:#c7c7cc;
+  --offen-bg:rgba(255,204,0,.17); --offen-ink:#8a5a00;
+  --bar:rgba(242,242,247,.8); --seg-on:#ffffff; --seg-shadow:0 1px 3px rgba(0,0,0,.1),0 0 0 .5px rgba(0,0,0,.04);
+  --radius:12px;
+  --sheet-bg:#f2f2f7; --sheet-surface:#ffffff; --material:rgba(246,246,248,.8); --mat-surface:#ffffff; --press:rgba(118,118,128,.14);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","Segoe UI",Roboto,Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#000000; --surface:#1c1c1e; --fill:rgba(118,118,128,.24); --fill-2:rgba(118,118,128,.16);
+    --sep:rgba(84,84,88,.6); --text:#f5f5f7; --muted:#8d8d93; --muted-2:#a1a1a6;
+    --blue:#0a84ff; --blue-soft:rgba(10,132,255,.18); --on-blue:#ffffff;
+    --green:#30d158; --green-dot:#30d158; --orange:#ff9f0a; --orange-dot:#ff9f0a; --red:#ff453a; --gray-dot:#48484a;
+    --offen-bg:rgba(255,214,10,.13); --offen-ink:#ffd60a;
+    --bar:rgba(0,0,0,.75); --seg-on:#636366; --seg-shadow:none;
+  --sheet-bg:#1c1c1e; --sheet-surface:#2c2c2e; --material:rgba(44,44,46,.82); --mat-surface:#3a3a3c; --press:rgba(118,118,128,.28);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#000000; --surface:#1c1c1e; --fill:rgba(118,118,128,.24); --fill-2:rgba(118,118,128,.16);
+  --sep:rgba(84,84,88,.6); --text:#f5f5f7; --muted:#8d8d93; --muted-2:#a1a1a6;
+  --blue:#0a84ff; --blue-soft:rgba(10,132,255,.18); --on-blue:#ffffff;
+  --green:#30d158; --green-dot:#30d158; --orange:#ff9f0a; --orange-dot:#ff9f0a; --red:#ff453a; --gray-dot:#48484a;
+  --offen-bg:rgba(255,214,10,.13); --offen-ink:#ffd60a;
+  --bar:rgba(0,0,0,.75); --seg-on:#636366; --seg-shadow:none;
+  --sheet-bg:#1c1c1e; --sheet-surface:#2c2c2e; --material:rgba(44,44,46,.82); --mat-surface:#3a3a3c; --press:rgba(118,118,128,.28);
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;font-size:17px;font-optical-sizing:auto}
+@supports (font: -apple-system-body){html{font:-apple-system-body}} /* folgt der Textgröße des iPads (Dynamic Type) */
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);line-height:1.47;letter-spacing:0;-webkit-font-smoothing:antialiased;min-height:100vh}
+button,input,select,textarea{font:inherit;color:inherit;letter-spacing:inherit}
+button{cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;background:none;border:0;padding:0}
+button:disabled{opacity:.35;cursor:default}
+[hidden]{display:none!important}
+h1,h2,h3,p{margin:0}
+.ic{width:1.2em;height:1.2em;flex:none;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+:focus-visible{outline:3px solid var(--blue-soft);outline-offset:2px}
+.muted{color:var(--muted)}
+.spacer{flex:1}
+
+/* ---------- Leiste oben ---------- */
+.topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:6px;
+  padding:calc(8px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 8px max(16px,env(safe-area-inset-left));
+  background:var(--bar);-webkit-backdrop-filter:saturate(1.8) blur(20px);backdrop-filter:saturate(1.8) blur(20px);box-shadow:0 .5px 0 transparent;transition:box-shadow .2s}
+.topbar.edge,.focusbar.edge{box-shadow:0 .5px 0 var(--sep)}
+.topbar .seg{width:min(390px,44vw)}
+.top-right{margin-left:auto;display:flex;align-items:center;gap:2px}
+.save-state{display:inline-flex;align-items:center;gap:5px;font-size:.8rem;color:var(--muted);white-space:nowrap;margin-right:8px}
+.save-state .ic{width:1em;height:1em}
+.save-state.error{color:var(--red);font-weight:600}
+.save-state.warn{color:var(--orange);font-weight:600}
+.save-state{min-height:36px}
+.timer{display:inline-flex;align-items:center;gap:5px;min-height:36px;padding:0 12px;margin-right:4px;border-radius:999px;font-size:.92rem;font-weight:600;color:var(--blue);font-variant-numeric:tabular-nums;white-space:nowrap}
+.timer.running{background:rgba(52,199,89,.15);color:var(--green)}
+.timer.running i{width:7px;height:7px;border-radius:50%;background:var(--green-dot);animation:pulse 2s infinite}
+.timer.ended{color:var(--muted)}
+@keyframes pulse{50%{opacity:.3}}
+.icon-btn{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:10px;color:var(--blue)}
+.icon-btn .ic{width:1.45em;height:1.45em}
+.icon-btn{transition:opacity .25s}
+.icon-btn:active{opacity:.4;transition-duration:0s}
+.timer{transition:opacity .25s}.timer:active{opacity:.5;transition-duration:0s}
+
+/* ---------- Segmente (wie iOS) ---------- */
+.seg{position:relative;display:flex;padding:2px;border-radius:9px;background:var(--fill)}
+.seg-thumb{position:absolute;top:2px;bottom:2px;left:0;border-radius:7px;background:var(--seg-on);box-shadow:var(--seg-shadow);pointer-events:none;will-change:transform}
+.seg button{position:relative;z-index:1;transition:opacity .25s}
+.seg button:active{opacity:.55;transition-duration:0s}
+.seg button{flex:1 1 0;min-width:0;min-height:36px;padding:0 8px;border-radius:7px;font-size:.88rem;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.seg button[aria-pressed="true"]{font-weight:600}
+.seg:not(:has(.seg-thumb)) button[aria-pressed="true"]{background:var(--seg-on);box-shadow:var(--seg-shadow);border-radius:7px}
+.seg.big button{min-height:46px;font-size:.98rem}
+.seg .cnt{color:var(--muted);font-weight:500;font-variant-numeric:tabular-nums}
+.seg-status button[aria-pressed="true"][data-value="besprochen"]{color:var(--green)}
+.seg-status button[aria-pressed="true"][data-value="vertagt"]{color:var(--orange)}
+.seg-status button[aria-pressed="true"][data-value="erledigt"]{color:var(--blue)}
+.seg-prio button[aria-pressed="true"][data-value="hoch"]{color:var(--red)}
+
+/* ---------- Knöpfe ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:50px;padding:0 22px;border-radius:12px;background:var(--blue);color:var(--on-blue);font-size:1rem;font-weight:600;white-space:nowrap}
+.btn,.chip{transition:transform .25s cubic-bezier(.2,.8,.2,1),background-color .2s}
+.btn:active:not(:disabled),.chip:active{transform:scale(.97);transition-duration:.08s}
+.btn.tinted{background:var(--blue-soft);color:var(--blue)}
+.btn.small{min-height:40px;padding:0 16px;font-size:.92rem;border-radius:10px}
+.plain{display:inline-flex;align-items:center;gap:4px;min-height:44px;color:var(--blue);font-size:1rem;font-weight:400}
+.plain.strong{font-weight:600}
+.plain{transition:opacity .25s}.plain:active{opacity:.4;transition-duration:0s}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:4px;min-height:36px;padding:0 14px;border-radius:999px;background:var(--fill);font-size:.9rem;font-weight:500;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--blue);color:var(--on-blue)}
+
+/* ---------- Gruppierte Listen ---------- */
+.wrap{max-width:980px;margin:0 auto;padding:24px max(20px,env(safe-area-inset-right)) 56px max(20px,env(safe-area-inset-left))}
+.sec{margin-top:28px}
+.sec-h{display:flex;align-items:flex-end;gap:12px;margin:0 16px 7px;font-size:.78rem;text-transform:uppercase;letter-spacing:.03em;color:var(--muted)}
+.sec-h .seg{margin-left:auto;text-transform:none;letter-spacing:0;width:260px}
+.sec-f{margin:7px 16px 0;font-size:.8rem;color:var(--muted);line-height:1.36;letter-spacing:.005em}
+.group{background:var(--surface);border-radius:var(--radius);overflow:hidden}
+.row{position:relative;display:flex;align-items:center;gap:12px;width:100%;min-height:50px;padding:11px 16px;text-align:left;font-size:1rem;color:var(--text)}
+.row+.row::before,.group>*+*::before{content:"";position:absolute;top:0;left:16px;right:0;border-top:.5px solid var(--sep)}
+.group>*{position:relative}
+.group>.field-in+.field-in{box-shadow:inset 0 .5px 0 var(--sep)}
+.row,.pt-main{transition:background-color .3s}
+button.row:active,.row[role="button"]:active,.pt-main:active{background:var(--press);transition-duration:0s}
+.row .grow{flex:1;min-width:0}
+.row .val{color:var(--muted);text-align:right}
+.row .chev{color:var(--gray-dot);width:1em;height:1em;stroke-width:2.6}
+.row.action{color:var(--blue)}
+.row.danger{color:var(--red)}
+.row .lead{color:var(--blue)}
+.row.danger .lead{color:var(--red)}
+.row small,.sub{display:block;font-size:.82rem;color:var(--muted)}
+.note{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border-radius:var(--radius);background:var(--surface);margin-bottom:20px;font-size:.92rem}
+.note p{flex:1;min-width:220px}
+.note .ic{color:var(--blue)}
+
+/* ---------- Formularfelder ---------- */
+.field-in,input.field-in,textarea.field-in,select.field-in{display:block;width:100%;min-height:50px;padding:13px 16px;border:0;background:transparent;font-size:max(1rem,16px);color:var(--text);-webkit-appearance:none;appearance:none;border-radius:0}
+textarea.field-in{resize:none;line-height:1.42;overflow:hidden}
+textarea.scroll{overflow:auto}
+.field-in:focus{outline:none}
+input::-webkit-date-and-time-value{text-align:left}
+::placeholder{color:var(--muted);opacity:1}
+textarea.notes-ta{min-height:160px}
+.frow{display:flex;align-items:flex-start;gap:12px;padding:0 0 0 16px}
+.frow>span{flex:0 0 150px;padding:14px 0;color:var(--text)}
+.frow .field-in{padding-left:0}
+select.pill{width:auto;min-height:36px;padding:0 34px 0 14px;border:0;border-radius:9px;background-color:var(--fill);font-size:.9rem;font-weight:500;-webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238e8e93' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:16px}
+select.inrow{width:auto;max-width:60%;border:0;background:transparent;color:var(--muted);font-size:1rem;text-align:right;-webkit-appearance:none;appearance:none;padding:0}
+.search{position:relative;flex:1;min-width:180px}
+.search input{width:100%;min-height:36px;padding:0 12px 0 34px;border:0;border-radius:10px;background:var(--fill);font-size:1rem;-webkit-appearance:none;appearance:none}
+.search input:focus{outline:none}
+.search .ic{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);width:1.05em;height:1.05em}
+input.switch{-webkit-appearance:none;appearance:none;flex:none;width:51px;height:31px;border-radius:999px;background:var(--fill);position:relative;transition:background .2s;margin:0;cursor:pointer}
+input.switch::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.2);transition:transform .2s}
+input.switch:checked{background:var(--green-dot)}
+input.switch:checked::after{transform:translateX(20px)}
+
+/* ---------- Übersicht ---------- */
+.eyebrow{font-size:.85rem;color:var(--muted);margin-bottom:4px}
+.large{font-size:2.05rem;font-weight:700;letter-spacing:-.022em;line-height:1.1}
+.page-sub{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;margin-top:6px;color:var(--muted)}
+.page-sub .plain{min-height:32px}
+.progress{margin-top:22px}
+.progress .ptext{font-size:.88rem;color:var(--muted);margin-bottom:8px}
+.progress .ptext b{color:var(--text);font-weight:600}
+.bar{display:flex;height:5px;border-radius:999px;overflow:hidden;background:var(--fill)}
+.bar span{height:100%}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:26px 0 12px}
+.controls .seg{flex:1 1 100%}
+.pt-row{display:flex;align-items:stretch}
+.pt-main{flex:1;min-width:0;display:flex;align-items:center;gap:14px;padding:13px 14px 13px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.pt-nr{flex:none;width:1.7em;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums;align-self:flex-start;padding-top:1px}
+.pt-body{flex:1;min-width:0}
+.pt-title{font-weight:500;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.prio-mark{color:var(--red);font-weight:700;margin-right:3px}
+.pt-dec{margin-top:3px;font-size:.88rem;color:var(--muted-2);display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.pt-meta{margin-top:3px;font-size:.8rem;color:var(--muted)}
+.pt-meta .new{color:var(--blue)}
+.status{display:inline-flex;align-items:center;gap:6px;flex:none;font-size:.85rem;color:var(--muted);white-space:nowrap}
+.status i{width:8px;height:8px;border-radius:50%;background:var(--gray-dot)}
+.status.st-besprochen i{background:var(--green-dot)}.status.st-vertagt i{background:var(--orange-dot)}.status.st-erledigt i{background:var(--blue)}
+.pt-row .chev{color:var(--gray-dot);width:.95em;height:.95em;stroke-width:2.6;flex:none}
+.pt-reorder{display:flex;align-items:center;padding-right:8px}
+.pt-row{position:relative;background:var(--surface)}
+.pt-row.flash{z-index:2;box-shadow:0 6px 20px rgba(0,0,0,.12)}
+.empty{text-align:center;padding:64px 24px}
+.empty .big-ic{width:56px;height:56px;color:var(--gray-dot);stroke-width:1.4;margin-bottom:12px}
+.empty h2{font-size:1.35rem;font-weight:700;margin-bottom:6px}
+.empty p{color:var(--muted);max-width:480px;margin:0 auto 24px}
+.empty .actions{display:flex;flex-direction:column;align-items:center;gap:6px}
+
+/* ---------- Fokus ---------- */
+.focusbar{position:sticky;top:var(--topbar-h,60px);z-index:20;display:flex;align-items:center;gap:12px;padding:8px max(16px,env(safe-area-inset-right)) 8px max(16px,env(safe-area-inset-left));background:var(--bar);-webkit-backdrop-filter:saturate(1.8) blur(20px);backdrop-filter:saturate(1.8) blur(20px);box-shadow:0 .5px 0 transparent;transition:box-shadow .2s}
+.focusbar .plain{min-width:120px;font-size:1.05rem}
+.focusbar .btn{min-width:150px}
+.focus-pos{flex:1;text-align:center;min-width:0}
+.fp-main{font-weight:600}
+.fp-sub{font-size:.8rem;color:var(--muted)}
+.fp-sub .plain{min-height:0;font-size:.8rem}
+.focus-grid{touch-action:pan-y pinch-zoom;will-change:transform;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:40px;align-items:start;max-width:1260px}
+@media (max-width:1000px){.focus-grid{grid-template-columns:1fr;gap:28px}.focusbar .plain{min-width:0}.focusbar .btn{min-width:0}}
+.kritik-text{font-size:1.55rem;font-weight:600;line-height:1.27;letter-spacing:-.015em;white-space:pre-wrap;overflow-wrap:anywhere}
+.label{display:block;font-size:.8rem;font-weight:600;color:var(--muted);margin:26px 0 6px}
+.label:first-child{margin-top:0}
+.loesung-text{font-size:1.08rem;white-space:pre-wrap;overflow-wrap:anywhere}
+.offen-box{margin-top:14px;padding:12px 16px;border-radius:var(--radius);background:var(--offen-bg);white-space:pre-wrap;overflow-wrap:anywhere}
+.offen-box b{display:block;font-size:.78rem;color:var(--offen-ink);font-weight:700;margin-bottom:2px}
+.right .label{margin:22px 4px 7px}
+.right .seg-status+.label{margin-top:26px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:640px){.grid2{grid-template-columns:1fr}}
+.grid2 .chips{margin-top:10px}
+.date-hint{margin:7px 4px 0;font-size:.82rem;color:var(--muted)}
+.hints{margin-top:16px;display:flex;flex-direction:column;gap:6px}
+.hint{display:flex;gap:7px;align-items:flex-start;font-size:.88rem;color:var(--orange)}
+.hint .ic{width:1.05em;height:1.05em;margin-top:1px}
+.hint.info{color:var(--muted)}
+.tiny{margin-top:14px;font-size:.8rem;color:var(--muted);display:flex;align-items:center;gap:5px}
+.tiny .ic{width:1em;height:1em}
+.back-chip{margin-bottom:16px}
+
+/* ---------- Abschluss ---------- */
+.lead-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+.act .what{font-weight:500;white-space:pre-line}
+.act .who{margin-top:3px;font-size:.85rem;color:var(--muted)}
+.act .who .miss{color:var(--orange);font-weight:600}
+.act .ok{color:var(--green)}
+.all-good{color:var(--green)}
+.gap-row .ic:not(.chev){color:var(--orange-dot)}
+.gap-row.info .ic:not(.chev){color:var(--muted)}
+
+/* ---------- Dialoge / Blätter ---------- */
+dialog{position:fixed;inset:0;margin:auto;z-index:60;border:0;padding:0;border-radius:14px;background:var(--sheet-bg);will-change:transform;color:var(--text);box-shadow:0 30px 80px rgba(0,0,0,.28);width:min(640px,calc(100vw - 32px));max-height:calc(100dvh - 48px)}
+dialog::backdrop{background:transparent}
+dialog.closing{pointer-events:none}
+dialog .group{background:var(--sheet-surface)}
+#scrim{position:fixed;inset:0;z-index:55;background:rgba(0,0,0,.32);pointer-events:none}
+.grabber{position:absolute;top:5px;left:50%;width:36px;height:5px;margin-left:-18px;border-radius:3px;background:var(--gray-dot)}
+.dlg-head{position:relative;touch-action:none;cursor:grab}
+dialog.popover{inset:auto;top:calc(var(--topbar-h,60px) + 6px);right:max(12px,env(safe-area-inset-right));margin:0;width:min(400px,calc(100vw - 24px));max-height:calc(100dvh - var(--topbar-h,60px) - 24px);border-radius:18px;background:var(--material);-webkit-backdrop-filter:blur(var(--mat-blur,30px)) saturate(1.8);backdrop-filter:blur(var(--mat-blur,30px)) saturate(1.8);box-shadow:0 18px 50px rgba(0,0,0,.2),0 0 0 .5px var(--sep)}
+dialog.popover .group{background:var(--mat-surface)}
+dialog.popover .dlg-head{background:transparent;border-bottom:0;cursor:default;touch-action:auto;grid-template-columns:1fr;padding:14px 16px 0}
+dialog.popover .dlg-body{padding:12px 16px 18px}
+dialog[open]{display:flex;flex-direction:column}
+dialog.wide{width:min(1100px,calc(100vw - 24px))}
+.dlg-head{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:8px 12px;border-bottom:.5px solid var(--sep);background:var(--bar)}
+.dlg-head h2{font-size:1.02rem;font-weight:600;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dlg-head .r{justify-self:end}.dlg-head .l{justify-self:start}
+.dlg-body{padding:20px;overflow:auto;-webkit-overflow-scrolling:touch}
+.dlg-body>.sec:first-child{margin-top:0}
+#dlg-choice{width:min(380px,calc(100vw - 48px));border-radius:16px;background:var(--material);-webkit-backdrop-filter:blur(30px) saturate(1.8);backdrop-filter:blur(30px) saturate(1.8)}
+#dlg-choice .dlg-body{text-align:center;padding:22px 22px 18px}
+#dlg-choice h2{font-size:1.05rem;font-weight:600;margin-bottom:6px}
+#dlg-choice p{font-size:.92rem;color:var(--text);opacity:.85;letter-spacing:.005em}
+#dcFoot{display:flex;border-top:.5px solid var(--sep)}
+#dcFoot button{flex:1;min-height:50px;color:var(--blue);font-size:1rem}
+#dcFoot button+button{border-left:.5px solid var(--sep)}
+#dcFoot button.primary{font-weight:600}
+#dcFoot button.danger{color:var(--red);font-weight:600}
+.imp-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:24px}
+@media (max-width:900px){.imp-grid{grid-template-columns:1fr}}
+#importText{height:40vh;min-height:220px;overflow:auto;font-size:.95rem}
+@media (max-width:900px){#importText{height:24vh;min-height:160px}}
+.imp-preview{max-height:60vh;overflow:auto}
+@media (max-width:900px){.imp-preview{max-height:none}}
+.imp-row{display:flex;gap:12px;padding:12px 16px}
+.imp-row .num{color:var(--muted);font-variant-numeric:tabular-nums;min-width:1.4em;text-align:right}
+.imp-row .kr{font-weight:500;white-space:pre-line}
+.imp-row .lo{margin-top:4px;font-size:.9rem;color:var(--muted-2);white-space:pre-line}
+.imp-row .offen-box{margin-top:8px;padding:8px 12px;font-size:.88rem}
+.imp-row .sel{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.imp-warn{color:var(--orange);font-size:.82rem;margin-top:4px}
+.dlg-help .dlg-body{max-width:760px;margin:0 auto}
+.dlg-help h3{font-size:1.1rem;margin:28px 0 8px}
+.dlg-help h3:first-child{margin-top:0}
+.dlg-help ol,.dlg-help ul{margin:0;padding-left:1.3em}
+.dlg-help li{margin:7px 0}
+.dlg-help .src{margin-top:10px;font-size:.8rem;color:var(--muted)}
+#dlg-readback{width:100vw;height:100dvh;max-width:none;max-height:none;border-radius:0}
+.rb-body{padding:28px max(28px,env(safe-area-inset-right)) 48px max(28px,env(safe-area-inset-left));overflow:auto;font-size:1.3rem}
+.rb-inner{max-width:980px;margin:0 auto}
+.rb-group{margin-bottom:30px}
+.rb-group h3{font-size:.85rem;text-transform:uppercase;letter-spacing:.02em;color:var(--muted);font-weight:500;margin:0 16px 8px}
+.rb-item{display:flex;align-items:center;gap:16px;padding:14px 16px}
+.rb-item .what{font-weight:600;white-space:pre-line}
+.rb-item .when{font-size:1rem;color:var(--muted)}
+.rb-item.confirmed .what{color:var(--green)}
+
+/* ---------- Hinweise unten ---------- */
+#toasts{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:100;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:min(560px,calc(100vw - 32px))}
+.toast{pointer-events:auto;display:flex;align-items:center;gap:14px;padding:12px 12px 12px 20px;border-radius:999px;background:rgba(30,30,32,.86);color:#fff;font-size:.92rem;font-weight:600;letter-spacing:.005em;-webkit-backdrop-filter:blur(24px) saturate(1.8);backdrop-filter:blur(24px) saturate(1.8);box-shadow:0 8px 30px rgba(0,0,0,.18);will-change:transform}
+.toast button{color:#64d2ff;font-weight:600;min-height:36px;padding:0 10px}
+/* ---------- iPhone ---------- */
+.tabbar{display:none}
+.l-short{display:none}
+dialog.popover .grabber{display:none}
+@media (max-width:700px){
+  .topbar{padding-left:max(14px,env(safe-area-inset-left));padding-right:max(6px,env(safe-area-inset-right))}
+  .topbar>.seg{display:none}
+  .top-right{flex:1;margin-left:0}
+  .save-state{margin-right:auto}
+  .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:30;padding:6px max(8px,env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));background:var(--bar);-webkit-backdrop-filter:saturate(1.8) blur(20px);backdrop-filter:saturate(1.8) blur(20px);box-shadow:0 -.5px 0 var(--sep)}
+  .tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:48px;color:var(--muted);font-size:.66rem;font-weight:500;letter-spacing:.01em;transition:opacity .25s}
+  .tabbar button .ic{width:1.6em;height:1.6em}
+  .tabbar button[aria-pressed="true"]{color:var(--blue)}
+  .tabbar button:active{opacity:.5;transition-duration:0s}
+  body{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+  #toasts{bottom:calc(76px + env(safe-area-inset-bottom))}
+  .wrap{padding:18px max(16px,env(safe-area-inset-right)) 40px max(16px,env(safe-area-inset-left))}
+  .large{font-size:1.75rem}
+  .kritik-text{font-size:1.3rem}
+  .seg button{padding:0 3px;font-size:.8rem}
+  .seg .cnt{display:none}
+  .l-long{display:none}.l-short{display:inline}
+  .seg.seg-status.big button{flex:1 1 auto;padding:0 6px;font-size:.82rem;letter-spacing:-.01em}
+  .controls .search{flex:1 1 100%}
+  .status{font-size:0;gap:0}
+  .focusbar{gap:8px}
+  .focusbar .plain span{display:none}
+  .focusbar .plain{min-width:44px}
+  .focusbar .btn{min-height:44px;padding:0 16px}
+  .frow>span{flex-basis:108px}
+  .sec-h .seg{width:190px}
+  dialog,dialog.wide,dialog.popover{inset:auto 0 0 0;margin:0;width:100%;max-width:none;max-height:calc(100dvh - 20px);border-radius:14px 14px 0 0}
+  dialog.popover{background:var(--sheet-bg);-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:0 -10px 40px rgba(0,0,0,.18)}
+  dialog.popover .group{background:var(--sheet-surface)}
+  dialog.popover .grabber{display:block}
+  dialog.popover .dlg-head{padding-top:18px}
+  .dlg-body{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+  #dlg-choice{inset:0;margin:auto;width:min(300px,calc(100vw - 48px));border-radius:16px}
+  #dlg-readback{height:100dvh;border-radius:0}
+  .rb-body{font-size:1.1rem;padding:20px 16px 40px}
+  .rb-item{flex-wrap:wrap}
+}
+
+/* ---------- Barrierefreiheit ---------- */
+.theme-fade,.theme-fade *{transition:background-color .35s ease,color .35s ease!important}
+@media (prefers-reduced-transparency: reduce){
+  .topbar,.focusbar,dialog.popover,#dlg-choice,.toast{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+  .topbar,.focusbar{background:var(--bg)} dialog.popover,#dlg-choice{background:var(--sheet-bg)} .toast{background:#1c1c1e}
+}
+@media (prefers-contrast: more){
+  :root{--sep:rgba(60,60,67,.5);--muted:#5d5d62}
+  .group,.seg,.chip,select.pill,.search input{outline:1px solid var(--sep)}
+  .seg-thumb{outline:1.5px solid var(--text)}
+}
+@media (prefers-reduced-motion: reduce){
+  dialog{transition:opacity .2s}
+  .btn:active,.chip:active{transform:none}
+}
+
+/* ---------- Druck ---------- */
+#print{display:none}
+@media print{
+  @page{size:A4;margin:15mm 14mm 16mm 18mm}
+  html{font-size:10pt!important}
+  body{background:#fff!important;color:#000!important;min-height:0}
+  body>*:not(#print){display:none!important}
+  #print{display:block!important}
+}
+.pr-doc{font-family:-apple-system,"Helvetica Neue",Helvetica,Arial,sans-serif;color:#1c1c1e;font-size:10pt;line-height:1.4;letter-spacing:0}
+.pr-kicker{font-size:8pt;letter-spacing:.06em;text-transform:uppercase;color:#86868b;font-weight:600}
+.pr-doc h1{font-size:18pt;font-weight:700;letter-spacing:-.01em;margin:3pt 0 10pt}
+.pr-meta{display:grid;grid-template-columns:30mm 1fr;gap:2pt 8pt;font-size:9.5pt;padding:7pt 0 9pt;border-top:.5pt solid #c7c7cc;border-bottom:.5pt solid #c7c7cc;margin:0}
+.pr-meta dt{color:#86868b}.pr-meta dd{margin:0}
+.pr-summary{margin:9pt 0 4pt;font-size:9.5pt;color:#3a3a3c}
+.pr-h2{font-size:11.5pt;font-weight:700;margin:16pt 0 6pt;break-after:avoid}
+.pr-point{padding:8pt 0 7pt;border-top:.5pt solid #d1d1d6;break-inside:avoid}
+.pr-ph{display:flex;align-items:baseline;gap:8pt;margin-bottom:4pt;break-after:avoid}
+.pr-nr{font-weight:700;font-size:11pt;min-width:8mm}
+.pr-ptags{flex:1;color:#86868b;font-size:8.5pt}
+.pr-st{font-size:8.5pt;font-weight:600}
+.pr-f{display:grid;grid-template-columns:30mm 1fr;gap:8pt;margin:2.5pt 0}
+.pr-l{color:#86868b;font-size:8.5pt;padding-top:1pt}
+.pr-v{white-space:pre-wrap;overflow-wrap:anywhere}
+.pr-kritik .pr-v{font-weight:600}
+.pr-offen{margin-top:3pt;padding:3pt 6pt;border-radius:3pt;background:#fff6d6;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.pr-beschluss .pr-v{padding:4pt 7pt;border-radius:3pt;background:#eef5ff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.pr-who{margin-top:2pt;font-size:9pt}
+.pr-table{width:100%;border-collapse:collapse;font-size:9pt;margin-top:4pt}
+.pr-table th{text-align:left;font-weight:600;color:#86868b;font-size:8pt;border-bottom:.8pt solid #1c1c1e;padding:4pt 5pt}
+.pr-table td{border-bottom:.5pt solid #d1d1d6;padding:5pt;vertical-align:top;white-space:pre-wrap;overflow-wrap:anywhere}
+.pr-table td.nw{white-space:nowrap;overflow-wrap:normal}
+.pr-table tr{break-inside:avoid}
+.pr-table .ref{display:block;color:#86868b;font-size:8pt;margin-top:1pt}
+.pr-note{margin-top:12pt;font-size:9pt;color:#3a3a3c;white-space:pre-wrap}
+.pr-foot{margin-top:16pt;padding-top:5pt;border-top:.5pt solid #d1d1d6;font-size:8pt;color:#86868b}
+.pr-muted{color:#86868b}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-left" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></symbol>
+    <symbol id="i-right" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14M19 12l-7 7-7-7"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><path d="M5 11v9a1 1 0 001 1h12a1 1 0 001-1v-9M16 6l-4-4-4 4M12 2v13"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M7.5 12h.01M12 12h.01M16.5 12h.01" stroke-width="2.8"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5l12 7.5-12 7.5z" fill="currentColor"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 7v6M12 17h.01"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-5M12 8h.01"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M8 13h8M8 17h8"/></symbol>
+    <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18h10.5a4.5 4.5 0 00.4-9A6 6 0 006.3 10.5 3.8 3.8 0 007 18z"/></symbol>
+    <symbol id="i-cloud-off" viewBox="0 0 24 24"><path d="M7 18h10.5a4.5 4.5 0 00.4-9A6 6 0 006.3 10.5 3.8 3.8 0 007 18zM3 3l18 18"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h12M9 12h12M9 18h12"/><circle cx="4.5" cy="6" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/><circle cx="4.5" cy="18" r="1.2"/></symbol>
+    <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></symbol>
+    <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h12l-2 4 2 4H5"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+  </defs>
+</svg>
+
+<header class="topbar" id="topbar">
+  <nav class="seg" data-key="nav" role="tablist" aria-label="Ansichten">
+    <button role="tab" data-action="view" data-view="overview">Übersicht</button>
+    <button role="tab" data-action="view" data-view="focus">Fokus</button>
+    <button role="tab" data-action="view" data-view="summary">Abschluss</button>
+  </nav>
+  <div class="top-right">
+    <button class="save-state" id="saveState" data-action="sync-status" aria-live="polite"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span class="txt">Gespeichert</span></button>
+    <button class="timer" id="timerChip" data-action="timer"></button>
+    <button class="icon-btn" data-action="add-point" aria-label="Neuen Punkt hinzufügen"><svg class="ic"><use href="#i-plus"/></svg></button>
+    <button class="icon-btn" data-action="open-share" aria-label="Teilen, Drucken &amp; Backup"><svg class="ic"><use href="#i-share"/></svg></button>
+    <button class="icon-btn" data-action="open-more" aria-label="Mehr"><svg class="ic"><use href="#i-more"/></svg></button>
+  </div>
+</header>
+
+<main id="main">
+  <section id="v-overview" class="view" hidden></section>
+  <section id="v-focus" class="view" hidden></section>
+  <section id="v-summary" class="view" hidden></section>
+</main>
+
+<nav class="tabbar" aria-label="Ansichten">
+  <button data-action="view" data-view="overview"><svg class="ic"><use href="#i-list"/></svg><span>Übersicht</span></button>
+  <button data-action="view" data-view="focus"><svg class="ic"><use href="#i-target"/></svg><span>Fokus</span></button>
+  <button data-action="view" data-view="summary"><svg class="ic"><use href="#i-flag"/></svg><span>Abschluss</span></button>
+</nav>
+
+<input type="file" id="fileJson" hidden>
+<div id="print"></div>
+<div id="toasts" aria-live="polite"></div>
+<div id="scrim" hidden></div>
+
+<dialog id="dlg-meeting" data-kind="sheet" aria-labelledby="dm-t">
+  <div class="dlg-head"><span class="grabber"></span><span></span><h2 id="dm-t">Kopfdaten</h2><button class="plain strong r" data-action="close-dialog">Fertig</button></div>
+  <div class="dlg-body">
+    <div class="group">
+      <label class="frow"><span>Titel</span><input class="field-in" type="text" data-mfield="titel" placeholder="Werkstatt-Runde"></label>
+      <label class="frow"><span>Datum</span><input class="field-in" type="date" data-mfield="datum"></label>
+      <label class="frow"><span>Ort</span><input class="field-in" type="text" data-mfield="ort" placeholder="Optional"></label>
+      <label class="frow"><span>Beginn</span><input class="field-in" type="time" data-mfield="beginn"></label>
+      <label class="frow"><span>Ende</span><input class="field-in" type="time" data-mfield="ende"></label>
+    </div>
+    <div class="sec">
+      <div class="group">
+        <label class="frow"><span>Teilnehmer</span><textarea class="field-in" rows="2" data-mfield="teilnehmer" autocapitalize="words" placeholder="Namen, mit Komma getrennt"></textarea></label>
+        <label class="frow"><span>Protokoll</span><input class="field-in" type="text" data-mfield="protokoll" autocapitalize="words" placeholder="Wer schreibt mit?"></label>
+      </div>
+      <p class="sec-f">Die Namen erscheinen im Fokus als Schnellauswahl bei „Verantwortlich“.</p>
+    </div>
+    <div class="sec">
+      <div class="group">
+        <label class="frow"><span>Geplante Dauer</span><input class="field-in" type="number" inputmode="numeric" min="0" step="15" data-mfield="dauerGeplant" placeholder="Minuten (optional)"></label>
+        <label class="frow"><span>Nächster Termin</span><input class="field-in" type="date" data-mfield="naechsterTermin"></label>
+      </div>
+      <p class="sec-f">Mit geplanter Dauer zeigt die App, wie viel Zeit je offenem Punkt bleibt.</p>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="dlg-import" data-kind="sheet" class="wide" aria-labelledby="di-t">
+  <div class="dlg-head"><span class="grabber"></span><button class="plain l" data-action="close-dialog">Abbrechen</button><h2 id="di-t">Liste importieren</h2><button class="plain strong r" id="impApply" data-action="import-apply" disabled>Übernehmen</button></div>
+  <div class="dlg-body">
+    <div class="imp-grid">
+      <div>
+        <div class="group"><textarea id="importText" class="field-in scroll" placeholder="1. Kritik: …&#10;Lösung: … Offen: …&#10;2. Kritik: …&#10;Lösung: …" spellcheck="false"></textarea></div>
+        <div class="chips" style="margin:10px 4px 0"><button class="plain" data-action="import-paste">Aus Zwischenablage einfügen</button><span class="spacer"></span><button class="plain" data-action="import-example">Beispiel</button></div>
+        <div class="sec" style="margin-top:14px">
+          <div class="group">
+            <div class="row"><span class="grow">Herkunft</span><div class="seg" data-key="imp-h" id="impHerkunft" style="width:260px">
+              <button data-action="imp-herkunft" data-value="Werkstatt" aria-pressed="true">Werkstatt</button>
+              <button data-action="imp-herkunft" data-value="Geschäftsführung" aria-pressed="false">GF</button></div></div>
+            <label class="row"><span class="grow">Kategorie vorschlagen</span><input type="checkbox" class="switch" id="impAuto" checked></label>
+            <div class="row" id="impModeWrap"><span class="grow">Vorhandene Punkte</span><div class="seg" data-key="imp-m" id="impMode" style="width:260px">
+              <button data-action="imp-mode" data-value="append" aria-pressed="true">Behalten</button>
+              <button data-action="imp-mode" data-value="replace" aria-pressed="false">Ersetzen</button></div></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="sec-h" id="impSum">Vorschau</div>
+        <div class="imp-preview" id="impPreview"></div>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="dlg-share" data-kind="popover" class="popover" aria-labelledby="dsh-t">
+  <div class="dlg-head"><span class="grabber"></span><h2 id="dsh-t">Teilen &amp; Sichern</h2></div>
+  <div class="dlg-body" id="shareBody"></div>
+</dialog>
+
+<dialog id="dlg-more" data-kind="popover" class="popover" aria-labelledby="dmo-t">
+  <div class="dlg-head"><span class="grabber"></span><h2 id="dmo-t">Mehr</h2></div>
+  <div class="dlg-body" id="moreBody"></div>
+</dialog>
+
+<dialog id="dlg-sync" data-kind="sheet" aria-labelledby="dsy-t">
+  <div class="dlg-head"><span class="grabber"></span><span></span><h2 id="dsy-t">iPhone &amp; iPad abgleichen</h2><button class="plain strong r" data-action="close-dialog">Fertig</button></div>
+  <div class="dlg-body" id="syncBody"></div>
+</dialog>
+
+<dialog id="dlg-help" data-kind="sheet" class="wide dlg-help" aria-labelledby="dh-t">
+  <div class="dlg-head"><span class="grabber"></span><span></span><h2 id="dh-t">Leitfaden</h2><button class="plain strong r" data-action="close-dialog">Fertig</button></div>
+  <div class="dlg-body" id="helpBody"></div>
+</dialog>
+
+<dialog id="dlg-readback" data-kind="sheet" aria-labelledby="dr-t">
+  <div class="dlg-head"><span class="grabber"></span><span class="muted l" id="rbCount"></span><h2 id="dr-t">Maßnahmen vorlesen</h2><button class="plain strong r" data-action="close-dialog">Fertig</button></div>
+  <div class="rb-body"><div class="rb-inner" id="rbBody"></div></div>
+</dialog>
+
+<dialog id="dlg-choice" data-kind="alert" role="alertdialog" aria-labelledby="dc-t">
+  <div class="dlg-body"><h2 id="dc-t"></h2><div id="dcBody"></div></div>
+  <div id="dcFoot"></div>
+</dialog>
+<script>
+'use strict';
+(() => {
+/* =====================================================================
+   Besprechungsprotokoll – eine Datei, keine externen Abhängigkeiten.
+   Alle Inhalte liegen ausschließlich im localStorage dieses Geräts.
+   ===================================================================== */
+const APP_ID = 'besprechungsprotokoll';
+const APP_VERSION = '3.0';
+const DATA_VERSION = 1;
+const KEY = 'bprot.v1.data', SNAP_KEY = 'bprot.v1.snapshots', PREF_KEY = 'bprot.v1.prefs';
+
+const KATEGORIEN = ['Teile und Garantie', 'Dokumentation', 'Organisation und Planung', 'Personal und Ausbildung', 'Kommunikation', 'Neuwagenannahme', 'Sonstiges'];
+const HERKUNFT = ['Werkstatt', 'Geschäftsführung'];
+const PRIO = ['hoch', 'mittel', 'niedrig'];
+const PRIO_LABEL = { hoch: 'Hoch', mittel: 'Mittel', niedrig: 'Niedrig' };
+const STATUS = ['offen', 'besprochen', 'vertagt', 'erledigt'];
+const STATUS_LABEL = { offen: 'Offen', besprochen: 'Besprochen', vertagt: 'Vertagt', erledigt: 'Erledigt' };
+
+/* ---------- Hilfsfunktionen ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const ic = (n, cls = '') => `<svg class="ic ${cls}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+const uid = () => (window.crypto && crypto.randomUUID ? crypto.randomUUID() : 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
+const pad = (n) => String(n).padStart(2, '0');
+const isoDate = (d) => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+const hhmm = (d) => pad(d.getHours()) + ':' + pad(d.getMinutes());
+function parseISO(s) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; }
+function fmtDate(s, weekday = true) {
+  const d = parseISO(s); if (!d) return '';
+  return d.toLocaleDateString('de-DE', weekday ? { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' } : { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+function fmtDE(s) { const d = parseISO(s); return d ? pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear() : ''; }
+function parseGermanDate(s) { const m = /^\s*(\d{1,2})\.(\d{1,2})\.(\d{2,4})\s*$/.exec(s || ''); if (!m) return ''; let y = +m[3]; if (y < 100) y += 2000; return y + '-' + pad(+m[2]) + '-' + pad(+m[1]); }
+function addDays(iso, n) { const d = parseISO(iso) || new Date(); d.setDate(d.getDate() + n); return isoDate(d); }
+function monthEnd(iso) { const d = parseISO(iso) || new Date(); return isoDate(new Date(d.getFullYear(), d.getMonth() + 1, 0)); }
+function daysFromToday(iso) { const d = parseISO(iso); if (!d) return null; const t = new Date(); t.setHours(0, 0, 0, 0); return Math.round((d - t) / 86400000); }
+function fmtMin(ms) { const min = Math.round(ms / 60000); if (min < 60) return min + ' Min.'; return Math.floor(min / 60) + ' Std. ' + pad(min % 60) + ' Min.'; }
+function fmtClock(ms) { const min = Math.floor(ms / 60000); return Math.floor(min / 60) + ':' + pad(min % 60); }
+const norm = (s) => String(s || '').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss');
+const oneLine = (s) => String(s || '').replace(/\s*\n+\s*/g, ' / ').trim();
+function names(s) { return String(s || '').split(/[,;\n]+/).map((x) => x.trim()).filter(Boolean); }
+function multiOwner(v) { return /[,;/+&]|\bund\b|\bteam\b|\balle\b/i.test(v || ''); }
+function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+
+/* ---------- Datenmodell ---------- */
+function emptyMeeting() {
+  return { titel: '', datum: '', ort: '', teilnehmer: '', protokoll: '', beginn: '', ende: '', dauerGeplant: '', naechsterTermin: '', notizen: '', laeuftSeit: null, beendetAm: null, aktualisiert: 0 };
+}
+function emptyData() {
+  return { app: APP_ID, version: DATA_VERSION, id: uid(), meeting: emptyMeeting(), punkte: [], geloescht: {}, meta: { erstellt: new Date().toISOString(), geaendert: null, letztesBackup: null, reihenfolge: 0 } };
+}
+function newPoint(over = {}) {
+  return Object.assign({ id: uid(), urspNr: null, kategorie: 'Sonstiges', herkunft: 'Werkstatt', kritik: '', loesung: '', offen: '', notizen: '', beschluss: '', kriterium: '', verantwortlich: '', frist: '', prioritaet: 'mittel', status: 'offen', ergaenzt: false, bestaetigt: false, zeitMs: 0, aktualisiert: 0 }, over);
+}
+function matchKategorie(raw) {
+  const n = norm(raw); if (!n) return null;
+  const exact = KATEGORIEN.find((k) => norm(k) === n); if (exact) return exact;
+  const map = [['teil', 0], ['garantie', 0], ['doku', 1], ['orga', 2], ['planung', 2], ['personal', 3], ['ausbild', 3], ['schulung', 3], ['kommuni', 4], ['neuwagen', 5], ['neufahrzeug', 5], ['sonst', 6]];
+  const hit = map.find(([k]) => n.includes(k)); return hit ? KATEGORIEN[hit[1]] : null;
+}
+function normHerkunft(raw) { const n = norm(raw); if (!n) return null; if (/gf|geschaeftsf|leitung|chef|fuehrung/.test(n)) return 'Geschäftsführung'; if (/werk/.test(n)) return 'Werkstatt'; return null; }
+function normPrio(raw) { const n = norm(raw); if (!n) return null; if (/hoch|high|^1|dringend|a$/.test(n)) return 'hoch'; if (/niedrig|gering|low|^3|c$/.test(n)) return 'niedrig'; if (/mittel|normal|^2|b$/.test(n)) return 'mittel'; return null; }
+function normalizePoint(p) {
+  const n = newPoint();
+  if (!p || typeof p !== 'object') return n;
+  for (const k of ['kritik', 'loesung', 'offen', 'notizen', 'beschluss', 'kriterium', 'verantwortlich', 'frist']) if (p[k] != null) n[k] = String(p[k]);
+  if (typeof p.id === 'string' && p.id) n.id = p.id;
+  n.kategorie = KATEGORIEN.includes(p.kategorie) ? p.kategorie : (matchKategorie(p.kategorie) || 'Sonstiges');
+  n.herkunft = HERKUNFT.includes(p.herkunft) ? p.herkunft : (normHerkunft(p.herkunft) || 'Werkstatt');
+  n.prioritaet = PRIO.includes(p.prioritaet) ? p.prioritaet : (normPrio(p.prioritaet) || 'mittel');
+  n.status = STATUS.includes(p.status) ? p.status : 'offen';
+  n.ergaenzt = !!p.ergaenzt; n.bestaetigt = !!p.bestaetigt;
+  n.urspNr = p.urspNr != null && p.urspNr !== '' && Number.isFinite(+p.urspNr) ? +p.urspNr : null;
+  n.zeitMs = Math.max(0, +p.zeitMs || 0);
+  n.aktualisiert = Math.max(0, +p.aktualisiert || 0);
+  if (n.frist && !/^\d{4}-\d{2}-\d{2}$/.test(n.frist)) n.frist = parseGermanDate(n.frist);
+  return n;
+}
+function normalizeData(raw) {
+  if (!raw || typeof raw !== 'object') throw new Error('Die Datei enthält keine gültigen Daten.');
+  const pts = Array.isArray(raw.punkte) ? raw.punkte : null;
+  if (!pts) throw new Error('Die Datei ist kein Backup dieser App (keine Punkte-Liste gefunden).');
+  const d = emptyData();
+  const m = raw.meeting && typeof raw.meeting === 'object' ? raw.meeting : {};
+  for (const k of Object.keys(d.meeting)) {
+    if (m[k] === undefined || m[k] === null) continue;
+    d.meeting[k] = (k === 'laeuftSeit' || k === 'beendetAm') ? (Number.isFinite(+m[k]) ? +m[k] : null) : k === 'aktualisiert' ? (+m[k] || 0) : String(m[k]);
+  }
+  const seen = new Set();
+  d.punkte = pts.map((p) => { const n = normalizePoint(p); if (seen.has(n.id)) n.id = uid(); seen.add(n.id); return n; });
+  if (raw.meta && typeof raw.meta === 'object') { for (const k of ['erstellt', 'geaendert', 'letztesBackup']) if (typeof raw.meta[k] === 'string') d.meta[k] = raw.meta[k]; d.meta.reihenfolge = +raw.meta.reihenfolge || 0; }
+  if (typeof raw.id === 'string' && raw.id) d.id = raw.id;
+  if (raw.geloescht && typeof raw.geloescht === 'object') for (const [k, v] of Object.entries(raw.geloescht)) if (Number.isFinite(+v)) d.geloescht[k] = +v;
+  return d;
+}
+
+/* ---------- Zustand ---------- */
+let data = emptyData();
+let prefs = {};
+const PREF_DEFAULTS = { theme: 'auto', scale: 1, wake: true, view: 'overview', focusId: null, fStatus: 'alle', fKat: 'alle', printNotes: true, actionsPos: 'vorne', onlyDiscussed: false, confidential: true, approval: false, actionsSort: 'nr', safariHintDismissed: false };
+let search = '';
+let focusEdit = false;
+let returnTo = null;
+let storageOk = true;
+
+function loadPrefs() { try { return Object.assign({}, PREF_DEFAULTS, JSON.parse(localStorage.getItem(PREF_KEY)) || {}); } catch (e) { return Object.assign({}, PREF_DEFAULTS); } }
+function savePrefs() { try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch (e) { /* egal */ } }
+function applyPrefs() {
+  const r = document.documentElement;
+  if (prefs.theme === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', prefs.theme);
+  applyType();
+}
+
+function applyType() { // Basis = Textgröße des iPads (Dynamic Type), darauf die eigene Stufe
+  const r = document.documentElement; r.style.fontSize = '';
+  const base = parseFloat(getComputedStyle(r).fontSize) || 17;
+  r.style.fontSize = (Math.max(15, base) * prefs.scale) + 'px';
+}
+function loadData() {
+  let raw = null;
+  try { raw = localStorage.getItem(KEY); } catch (e) { return emptyData(); }
+  if (!raw) return emptyData();
+  try { const obj = JSON.parse(raw); const d = normalizeData(obj); if (!obj.id) dirty = true; return d; }
+  catch (e) {
+    try { localStorage.setItem(KEY + '.defekt.' + Date.now(), raw); } catch (_) { /* egal */ }
+    setTimeout(() => toast('Gespeicherte Daten waren beschädigt und wurden beiseitegelegt. Bitte Backup laden.', { timeout: 12000 }), 500);
+    return emptyData();
+  }
+}
+function testStorage() { try { localStorage.setItem('bprot.test', '1'); localStorage.removeItem('bprot.test'); return true; } catch (e) { return false; } }
+
+/* ---------- Speichern (Autosave) ---------- */
+let saveTimer = null, dirty = false, lastSavedAt = null, persistAsked = false;
+function changed() {
+  data.meta.geaendert = new Date().toISOString();
+  dirty = true;
+  setSaveState('pending');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(flushSave, 350);
+  scheduleSync();
+}
+function flushSave() {
+  clearTimeout(saveTimer);
+  if (!dirty) return true;
+  try {
+    stampChanges();
+    localStorage.setItem(KEY, JSON.stringify(data));
+    dirty = false; lastSavedAt = new Date();
+    setSaveState('saved');
+    maybeAutoSnapshot();
+    if (!persistAsked && navigator.storage && navigator.storage.persist) { persistAsked = true; navigator.storage.persist().catch(() => {}); }
+    return true;
+  } catch (e) {
+    setSaveState('error');
+    toast('Speichern fehlgeschlagen! Bitte sofort ein Backup sichern (Export & Daten).', { timeout: 15000 });
+    return false;
+  }
+}
+function setSaveState(s) {
+  const el = $('#saveState'); if (!el) return;
+  el.classList.toggle('pending', s === 'pending'); el.classList.toggle('error', s === 'error');
+  const t = $('.txt', el), u = $('use', el);
+  const l = s === 'saved' && typeof syncLabel === 'function' ? syncLabel() : null;
+  el.classList.toggle('warn', !!(l && l[2]));
+  u.setAttribute('href', '#i-' + (l ? l[1] : 'check'));
+  if (s === 'pending') t.textContent = 'Speichert …';
+  else if (s === 'error') t.textContent = 'Nicht gespeichert!';
+  else t.textContent = l ? l[0] : 'Gespeichert';
+  el.title = lastSavedAt ? 'Zuletzt gespeichert um ' + lastSavedAt.toLocaleTimeString('de-DE') : 'Alle Daten liegen nur auf diesem Gerät';
+}
+
+/* ---------- Wiederherstellungspunkte ---------- */
+let lastAutoSnap = 0;
+function loadSnaps() { try { return JSON.parse(localStorage.getItem(SNAP_KEY)) || []; } catch (e) { return []; } }
+function makeSnapshot(reason) {
+  const snaps = loadSnaps();
+  const json = JSON.stringify(data);
+  if (snaps[0] && JSON.stringify(snaps[0].data) === json) return;
+  if (!data.punkte.length && !data.meeting.titel) return;
+  snaps.unshift({ t: Date.now(), reason, data: JSON.parse(json) });
+  while (snaps.length > 12) snaps.pop();
+  for (;;) {
+    try { localStorage.setItem(SNAP_KEY, JSON.stringify(snaps)); break; }
+    catch (e) { if (snaps.length <= 1) break; snaps.pop(); }
+  }
+}
+function maybeAutoSnapshot() {
+  if (Date.now() - lastAutoSnap < 10 * 60 * 1000) return;
+  if (!lastAutoSnap) { const s = loadSnaps().find((x) => x.reason === 'Automatisch'); if (s && Date.now() - s.t < 10 * 60 * 1000) { lastAutoSnap = s.t; return; } }
+  lastAutoSnap = Date.now(); makeSnapshot('Automatisch');
+}
+
+/* ---------- Abfragen ---------- */
+const byId = (id) => data.punkte.find((p) => p.id === id);
+const nrOf = (id) => data.punkte.findIndex((p) => p.id === id) + 1;
+function matchesFilter(p) {
+  if (prefs.fStatus !== 'alle' && p.status !== prefs.fStatus) return false;
+  if (prefs.fKat !== 'alle' && p.kategorie !== prefs.fKat) return false;
+  return true;
+}
+function matchesSearch(p) {
+  if (!search.trim()) return true;
+  const q = norm(search.trim());
+  return ['kritik', 'loesung', 'offen', 'notizen', 'beschluss', 'verantwortlich', 'kategorie'].some((k) => norm(p[k]).includes(q));
+}
+const filterActive = () => prefs.fStatus !== 'alle' || prefs.fKat !== 'alle';
+function filterLabel() { const a = []; if (prefs.fStatus !== 'alle') a.push(STATUS_LABEL[prefs.fStatus]); if (prefs.fKat !== 'alle') a.push(prefs.fKat); return a.join(' · '); }
+function counts() {
+  const c = { total: data.punkte.length, offen: 0, besprochen: 0, vertagt: 0, erledigt: 0, beschluesse: 0 };
+  data.punkte.forEach((p) => { c[p.status]++; if (p.beschluss.trim()) c.beschluesse++; });
+  c.durch = c.besprochen + c.erledigt;
+  return c;
+}
+function actions(sort) {
+  const a = data.punkte.map((p, i) => ({ p, nr: i + 1 })).filter((x) => x.p.beschluss.trim());
+  const s = sort || prefs.actionsSort;
+  if (s === 'person') a.sort((x, y) => (x.p.verantwortlich.trim() || '￿').localeCompare(y.p.verantwortlich.trim() || '￿', 'de') || x.nr - y.nr);
+  else if (s === 'frist') a.sort((x, y) => (x.p.frist || '9999').localeCompare(y.p.frist || '9999') || x.nr - y.nr);
+  return a;
+}
+function participants() {
+  const all = names(data.meeting.teilnehmer).concat(names(data.meeting.protokoll));
+  return all.filter((n, i) => all.findIndex((x) => x.toLowerCase() === n.toLowerCase()) === i);
+}
+function meetingRunning() { return !!data.meeting.laeuftSeit && !data.meeting.beendetAm; }
+function elapsedMs() { const m = data.meeting; return m.laeuftSeit ? (m.beendetAm || Date.now()) - m.laeuftSeit : 0; }
+function paceText() {
+  const c = counts(), m = data.meeting, parts = [];
+  parts.push(c.offen === 0 ? 'alle Punkte bearbeitet' : `noch ${c.offen} offen`);
+  if (meetingRunning() && +m.dauerGeplant > 0) {
+    const rest = +m.dauerGeplant * 60000 - elapsedMs();
+    if (rest <= 0) parts.push('geplante Zeit überschritten');
+    else if (c.offen > 0) parts.push(`≈ ${Math.max(1, Math.floor(rest / c.offen / 60000))} Min. je Punkt`);
+    else parts.push(`${fmtMin(rest)} Puffer`);
+  }
+  return parts.join(' · ');
+}
+function pointHints(p) {
+  const h = [];
+  if (p.beschluss.trim()) {
+    if (!p.verantwortlich.trim()) h.push(['warn', 'Wer ist verantwortlich? Eine Person festlegen.']);
+    else if (multiOwner(p.verantwortlich)) h.push(['info', 'Profi-Tipp: Genau eine Person „hat den Hut auf“ – andere unterstützen. „Alle“ heißt oft: niemand.']);
+    if (!p.frist) h.push(['warn', 'Bis wann? Auch ein vorläufiges Datum ist besser als keins.']);
+  } else if (p.verantwortlich.trim() || p.frist) h.push(['warn', 'Verantwortlich/Frist ohne Beschluss – was genau soll passieren?']);
+  else if (p.status === 'besprochen' || p.status === 'erledigt') h.push(['info', 'Kein Beschluss notiert – bewusst nur zur Information?']);
+  if (p.status === 'vertagt') h.push(['info', 'Vertagt: erscheint im Abschluss unter „Themenspeicher“ und wird beim Folgetermin übernommen.']);
+  return h;
+}
+function gaps() {
+  const out = [], m = data.meeting;
+  if (!m.titel.trim()) out.push({ lvl: 'info', text: 'Titel der Besprechung fehlt', act: 'open-meeting' });
+  if (!m.datum) out.push({ lvl: 'warn', text: 'Datum der Besprechung fehlt', act: 'open-meeting' });
+  if (!m.teilnehmer.trim()) out.push({ lvl: 'warn', text: 'Teilnehmer fehlen', act: 'open-meeting' });
+  if (!m.protokoll.trim()) out.push({ lvl: 'info', text: 'Protokollführer fehlt', act: 'open-meeting' });
+  const offen = [];
+  data.punkte.forEach((p, i) => {
+    const nr = i + 1;
+    if (p.beschluss.trim()) {
+      if (!p.verantwortlich.trim()) out.push({ lvl: 'warn', id: p.id, nr, text: 'Beschluss ohne Verantwortlichen' });
+      else if (multiOwner(p.verantwortlich)) out.push({ lvl: 'info', id: p.id, nr, text: 'Mehrere Verantwortliche – eine Person als Hauptverantwortliche festlegen' });
+      if (!p.frist) out.push({ lvl: 'warn', id: p.id, nr, text: 'Beschluss ohne Frist' });
+      else if (m.datum && p.frist < m.datum) out.push({ lvl: 'warn', id: p.id, nr, text: 'Frist liegt vor dem Besprechungstermin' });
+    } else if (p.verantwortlich.trim() || p.frist) out.push({ lvl: 'warn', id: p.id, nr, text: 'Verantwortlich/Frist, aber kein Beschluss-Text' });
+    else if (p.status === 'besprochen') out.push({ lvl: 'info', id: p.id, nr, text: 'Besprochen, aber kein Beschluss notiert' });
+    if (p.status === 'offen') offen.push({ id: p.id, nr });
+  });
+  if (offen.length) out.push({ lvl: 'warn', id: offen[0].id, sammel: true, text: `${offen.length} ${offen.length === 1 ? 'Punkt' : 'Punkte'} noch nicht besprochen (Nr. ${offen.map((o) => o.nr).join(', ')})` });
+  if (!m.naechsterTermin && data.punkte.length) out.push({ lvl: 'warn', text: 'Kein Termin zur Nachverfolgung festgelegt', act: 'focus-naechster' });
+  out.sort((a, b) => (a.lvl === b.lvl ? 0 : a.lvl === 'warn' ? -1 : 1));
+  return out;
+}
+
+/* =====================================================================
+   Abgleich zwischen iPhone und iPad über Microsoft 365 (OneDrive).
+   Anmeldung: OAuth 2.0 mit PKCE direkt bei Microsoft – kein Server, keine
+   Bibliothek. Gespeichert wird in OneDrive → Apps → Besprechungsprotokoll.
+   ===================================================================== */
+const MS_DEFAULT = { clientId: '', tenant: '' }; // nach der Registrierung hier eintragen (öffentliche Kennungen, kein Geheimnis)
+const SYNC_KEY = 'bprot.v1.sync', PKCE_KEY = 'bprot.v1.pkce';
+const MS_SCOPES = 'openid profile offline_access User.Read Files.ReadWrite';
+const GRAPH = 'https://graph.microsoft.com/v1.0';
+const SYNC_DIR = '/me/drive/root:/Apps/Besprechungsprotokoll';
+let sync = {};
+let syncState = { s: 'off', msg: '' }, syncBusy = false, syncAgain = false, syncTimer = 0, pendingRender = false;
+
+function loadSync() { try { sync = JSON.parse(localStorage.getItem(SYNC_KEY)) || {}; } catch (e) { sync = {}; } }
+function saveSync() { try { localStorage.setItem(SYNC_KEY, JSON.stringify(sync)); } catch (e) { /* egal */ } }
+const msClient = () => (sync.clientId || MS_DEFAULT.clientId || '').trim();
+const msTenant = () => (sync.tenant || MS_DEFAULT.tenant || '').trim();
+const syncConfigured = () => !!(msClient() && msTenant());
+const signedIn = () => !!(syncConfigured() && sync.rt);
+const redirectUri = () => location.origin + location.pathname.replace(/index\.html$/, '');
+
+/* ---------- Änderungen erkennen (für das Zusammenführen) ---------- */
+let base = { id: null, pts: new Map(), meeting: '', order: '' };
+const pointSig = (p) => { const { aktualisiert, ...r } = p; void aktualisiert; return JSON.stringify(r); };
+const meetingSig = (m) => { const { aktualisiert, ...r } = m; void aktualisiert; return JSON.stringify(r); };
+function setBaseline() {
+  base = { id: data.id, pts: new Map(data.punkte.map((p) => [p.id, pointSig(p)])), meeting: meetingSig(data.meeting), order: data.punkte.map((p) => p.id).join(',') };
+}
+function stampChanges() { // vergibt Zeitstempel an alles, was sich seit dem letzten Speichern geändert hat
+  if (data.id !== base.id) { setBaseline(); return; }
+  const now = Date.now(); data.geloescht = data.geloescht || {};
+  const ids = new Set();
+  for (const p of data.punkte) { ids.add(p.id); if (base.pts.get(p.id) !== pointSig(p)) p.aktualisiert = now; }
+  for (const id of base.pts.keys()) if (!ids.has(id)) data.geloescht[id] = now;
+  if (meetingSig(data.meeting) !== base.meeting) data.meeting.aktualisiert = now;
+  if (data.punkte.map((p) => p.id).join(',') !== base.order) data.meta.reihenfolge = now;
+  setBaseline();
+}
+function mergeData(local, remote) { // pro Punkt gewinnt die jüngere Änderung; Löschungen bleiben gelöscht
+  const out = JSON.parse(JSON.stringify(local));
+  if ((remote.meeting.aktualisiert || 0) > (local.meeting.aktualisiert || 0)) out.meeting = JSON.parse(JSON.stringify(remote.meeting));
+  const tomb = Object.assign({}, local.geloescht || {});
+  for (const [id, t] of Object.entries(remote.geloescht || {})) tomb[id] = Math.max(tomb[id] || 0, t);
+  const map = new Map(local.punkte.map((p) => [p.id, p]));
+  for (const p of remote.punkte) { const l = map.get(p.id); if (!l || (p.aktualisiert || 0) > (l.aktualisiert || 0)) map.set(p.id, p); }
+  const rFirst = (remote.meta.reihenfolge || 0) > (local.meta.reihenfolge || 0);
+  const order = [...(rFirst ? remote : local).punkte, ...(rFirst ? local : remote).punkte].map((p) => p.id);
+  const seen = new Set();
+  out.punkte = order.filter((id) => { if (seen.has(id)) return false; seen.add(id); const p = map.get(id); return p && !(id in tomb && tomb[id] >= (p.aktualisiert || 0)); }).map((id) => JSON.parse(JSON.stringify(map.get(id))));
+  const cutoff = Date.now() - 60 * 86400000;
+  out.geloescht = Object.fromEntries(Object.entries(tomb).filter(([, t]) => t > cutoff));
+  out.meta.reihenfolge = Math.max(local.meta.reihenfolge || 0, remote.meta.reihenfolge || 0);
+  return out;
+}
+const contentSig = (d) => JSON.stringify({ id: d.id, m: d.meeting, p: d.punkte, g: d.geloescht || {} });
+const hasContent = (d) => d.punkte.length > 0 || !!d.meeting.titel.trim();
+
+/* ---------- Anmeldung (PKCE) ---------- */
+const b64url = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const randomStr = (n = 48) => b64url(crypto.getRandomValues(new Uint8Array(n)));
+async function msLogin() {
+  if (!syncConfigured()) { openSyncSheet(); return; }
+  if (!window.crypto || !crypto.subtle) { toast('Anmeldung nur über https möglich.'); return; }
+  flushSave();
+  const verifier = randomStr(48), state = randomStr(16);
+  const challenge = b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
+  try { localStorage.setItem(PKCE_KEY, JSON.stringify({ verifier, state, t: Date.now() })); } catch (e) { /* egal */ }
+  const q = new URLSearchParams({ client_id: msClient(), response_type: 'code', redirect_uri: redirectUri(), response_mode: 'query', scope: MS_SCOPES, state, code_challenge: challenge, code_challenge_method: 'S256' });
+  if (sync.user && sync.user.upn) q.set('login_hint', sync.user.upn); else q.set('prompt', 'select_account');
+  location.assign(`https://login.microsoftonline.com/${encodeURIComponent(msTenant())}/oauth2/v2.0/authorize?${q}`);
+}
+async function tokenRequest(params) {
+  const res = await fetch(`https://login.microsoftonline.com/${encodeURIComponent(msTenant())}/oauth2/v2.0/token`, {
+    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(Object.assign({ client_id: msClient(), scope: MS_SCOPES }, params)),
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) { const e = new Error(j.error_description ? j.error_description.split('\r\n')[0] : 'Anmeldung fehlgeschlagen'); e.code = j.error === 'invalid_grant' || j.error === 'interaction_required' ? 'login' : 'auth'; throw e; }
+  sync.at = j.access_token; sync.atExp = Date.now() + (j.expires_in || 3600) * 1000;
+  if (j.refresh_token) sync.rt = j.refresh_token;
+  if (j.id_token) { try { const c = JSON.parse(decodeURIComponent(escape(atob(j.id_token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))))); sync.user = { name: c.name || '', upn: c.preferred_username || '' }; } catch (e) { /* egal */ } }
+  saveSync();
+}
+async function handleRedirect() {
+  const q = new URLSearchParams(location.search);
+  if (!q.has('code') && !q.has('error')) return false;
+  history.replaceState(null, '', redirectUri());
+  let pk = null; try { pk = JSON.parse(localStorage.getItem(PKCE_KEY)); localStorage.removeItem(PKCE_KEY); } catch (e) { /* egal */ }
+  if (q.has('error')) { toast('Anmeldung abgebrochen: ' + (q.get('error_description') || q.get('error')).slice(0, 120), { timeout: 9000 }); setSync('login'); return true; }
+  if (!pk || pk.state !== q.get('state')) { toast('Anmeldung ungültig – bitte erneut versuchen.'); return true; }
+  try { await tokenRequest({ grant_type: 'authorization_code', code: q.get('code'), redirect_uri: redirectUri(), code_verifier: pk.verifier }); toast('Angemeldet' + (sync.user && sync.user.name ? ' als ' + sync.user.name : '')); syncNow({ interactive: true }); }
+  catch (e) { toast(e.message, { timeout: 9000 }); setSync('error', e.message); }
+  return true;
+}
+async function accessToken() {
+  if (sync.at && sync.atExp - 60000 > Date.now()) return sync.at;
+  if (!sync.rt) { const e = new Error('Anmeldung nötig'); e.code = 'login'; throw e; }
+  await tokenRequest({ grant_type: 'refresh_token', refresh_token: sync.rt });
+  return sync.at;
+}
+async function graph(path, opts = {}, retry = true) {
+  const token = await accessToken();
+  const res = await fetch(GRAPH + path, Object.assign({}, opts, { headers: Object.assign({ Authorization: 'Bearer ' + token }, opts.headers || {}) }));
+  if (res.status === 401 && retry) { sync.at = null; return graph(path, opts, false); }
+  return res;
+}
+function msLogout() { sync = { clientId: sync.clientId, tenant: sync.tenant }; saveSync(); setSync(syncConfigured() ? 'login' : 'off'); toast('Abgemeldet. Die Daten bleiben auf diesem Gerät.'); }
+
+/* ---------- Abgleich ---------- */
+async function pull() {
+  const res = await graph(`${SYNC_DIR}/aktuell.json`);
+  if (res.status === 404) return { remote: null, etag: null };
+  if (!res.ok) throw new Error('OneDrive antwortet nicht (' + res.status + ')');
+  const item = await res.json();
+  const url = item['@microsoft.graph.downloadUrl'];
+  const fr = url ? await fetch(url) : await graph(`${SYNC_DIR}/aktuell.json:/content`);
+  if (!fr.ok) throw new Error('Datei konnte nicht geladen werden (' + fr.status + ')');
+  return { remote: normalizeData(await fr.json()), etag: item.eTag || null };
+}
+async function putFile(path, obj, etag) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (etag) headers['If-Match'] = etag;
+  const res = await graph(`${path}:/content`, { method: 'PUT', headers, body: JSON.stringify(obj) });
+  if (res.status === 412) return { conflict: true };
+  if (!res.ok) throw new Error('Hochladen fehlgeschlagen (' + res.status + ')');
+  const j = await res.json().catch(() => ({}));
+  return { etag: j.eTag || null };
+}
+const archivePath = (d) => `${SYNC_DIR}/Archiv/${(d.meeting.datum || 'ohne-Datum')}_${(d.meeting.titel || 'Besprechung').replace(/[^\wäöüÄÖÜß-]+/g, '_').slice(0, 40)}_${String(d.id).slice(0, 8)}.json`;
+async function decide(remote) {
+  if (!remote) return { result: data, upload: true };
+  if (remote.id === data.id) { const m = mergeData(data, remote); return { result: m, upload: contentSig(m) !== contentSig(remote) }; }
+  if (sync.lastId && remote.id === sync.lastId) return { result: data, upload: true, archive: true }; // hier neu begonnen
+  if (sync.lastId && data.id === sync.lastId) { makeSnapshot('Vor Übernahme vom anderen Gerät'); return { result: remote, upload: false }; } // am anderen Gerät neu begonnen
+  if (!hasContent(data)) return { result: remote, upload: false };
+  const r = await choice({ title: 'Welche Besprechung behalten?', html: `<p>In OneDrive liegt <b>${esc(remote.meeting.titel || 'eine Besprechung')}</b> (${remote.punkte.length} Punkte).<br>Auf diesem Gerät: <b>${esc(data.meeting.titel || 'Besprechung')}</b> (${data.punkte.length} Punkte).</p><p style="margin-top:8px">Die andere Fassung wird gesichert und geht nicht verloren.</p>`, choices: [{ label: 'Diese hochladen', value: 'local' }, { label: 'OneDrive übernehmen', value: 'remote', cls: 'primary' }] });
+  if (r === 'remote') { makeSnapshot('Vor Übernahme aus OneDrive'); return { result: remote, upload: false }; }
+  if (r === 'local') return { result: data, upload: true, archive: true };
+  return { cancel: true };
+}
+function applyResult(result) {
+  flushSave(); // eigene Eingaben während des Abgleichs bekommen ihren Zeitstempel
+  const next = result.id === data.id ? mergeData(data, result) : JSON.parse(JSON.stringify(result));
+  if (contentSig(next) === contentSig(data)) return;
+  next.meta.letztesBackup = data.meta.letztesBackup; // Backups sind Sache des einzelnen Geräts
+  trackStop();
+  data = next; setBaseline();
+  try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { /* Anzeige zeigt Fehler beim nächsten Speichern */ }
+  if (!byId(prefs.focusId)) prefs.focusId = null;
+  const a = document.activeElement;
+  if (a && a.closest && a.closest('main input, main textarea, main select')) pendingRender = true; // nicht beim Tippen stören
+  else render();
+  trackStart();
+}
+async function syncNow({ interactive = false } = {}) {
+  if (!signedIn()) { setSync(syncConfigured() ? 'login' : 'off'); return; }
+  if (syncBusy) { syncAgain = true; return; }
+  if (!navigator.onLine) { setSync('offline'); return; }
+  syncBusy = true; setSync('busy');
+  try {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      flushSave();
+      const { remote, etag } = await pull();
+      const plan = await decide(remote);
+      if (plan.cancel) { setSync('paused'); return; }
+      let tag = etag;
+      if (plan.archive && remote) await putFile(archivePath(remote), remote);
+      if (plan.upload) {
+        const r = await putFile(`${SYNC_DIR}/aktuell.json`, plan.result, plan.archive ? null : etag);
+        if (r.conflict) continue; // anderes Gerät war schneller → neu holen und zusammenführen
+        tag = r.etag;
+      }
+      applyResult(plan.result);
+      sync.lastId = plan.result.id; sync.lastSync = Date.now(); sync.etag = tag; saveSync();
+      setSync('ok');
+      if (interactive) toast('Abgeglichen mit OneDrive');
+      return;
+    }
+    throw new Error('Abgleich kollidiert mehrfach – bitte gleich noch einmal.');
+  } catch (e) {
+    if (e.code === 'login') setSync('login');
+    else if (!navigator.onLine || e instanceof TypeError) setSync('offline');
+    else { setSync('error', e.message); if (interactive) toast(e.message, { timeout: 8000 }); }
+  } finally {
+    syncBusy = false;
+    if (syncAgain) { syncAgain = false; scheduleSync(800); }
+  }
+}
+function scheduleSync(ms = 2500) { if (!signedIn()) return; clearTimeout(syncTimer); syncTimer = setTimeout(() => syncNow(), ms); }
+function setSync(s, msg = '') { syncState = { s, msg }; setSaveState(dirty ? 'pending' : 'saved'); if ($('#dlg-sync') && $('#dlg-sync').open) renderSync(); }
+function syncLabel() {
+  const s = syncState.s;
+  if (s === 'busy') return ['Gleicht ab …', 'cloud', ''];
+  if (s === 'ok') return ['Synchronisiert', 'cloud', ''];
+  if (s === 'offline') return ['Offline', 'cloud-off', ''];
+  if (s === 'login') return ['Anmelden', 'cloud-off', 'warn'];
+  if (s === 'error' || s === 'paused') return ['Abgleich prüfen', 'cloud-off', 'warn'];
+  return null;
+}
+function openSyncSheet() { closeSheets(); renderSync(); openDialog('dlg-sync'); }
+function renderSync() {
+  const host = $('#syncBody'); if (!host) return;
+  const last = sync.lastSync ? new Date(sync.lastSync).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }) : '–';
+  if (!syncConfigured()) {
+    host.innerHTML = `
+      <p class="sec-f" style="margin:0 4px 16px">Melde dich mit deinem Microsoft-365-Konto an. Die Besprechung wird dann in deinem OneDrive gespeichert und erscheint auf iPhone und iPad. Ohne Netz arbeitest du normal weiter – abgeglichen wird, sobald wieder Verbindung besteht.</p>
+      <div class="sec-h">Einmalig: Kennungen der App-Registrierung</div>
+      <div class="group">
+        <label class="frow"><span>Anwendungs-ID</span><input class="field-in" id="msClient" type="text" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="xxxxxxxx-xxxx-…" value="${esc(sync.clientId || '')}"></label>
+        <label class="frow"><span>Verzeichnis-ID</span><input class="field-in" id="msTenant" type="text" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="Mandant (ID oder Domain)" value="${esc(sync.tenant || '')}"></label>
+      </div>
+      <p class="sec-f">Beides steht in Microsoft Entra unter „App-Registrierungen“ → „Besprechungsprotokoll“ → „Übersicht“. Als Umleitungs-URI (Plattform „Single-Page-Anwendung“) dort eintragen:<br><b style="user-select:all;-webkit-user-select:all">${esc(redirectUri())}</b></p>
+      <div style="margin-top:18px"><button class="btn" data-action="sync-save-config">Speichern und anmelden</button></div>`;
+    return;
+  }
+  if (!signedIn()) {
+    host.innerHTML = `
+      <p class="sec-f" style="margin:0 4px 16px">Melde dich an, damit iPhone und iPad denselben Stand haben.${sync.user ? ` Zuletzt angemeldet: ${esc(sync.user.upn || sync.user.name)}.` : ''}</p>
+      <button class="btn" data-action="sync-login">Mit Microsoft anmelden</button>
+      <div class="sec"><div class="group"><button class="row action" data-action="sync-reset-config"><span class="grow">Kennungen ändern</span></button></div></div>`;
+    return;
+  }
+  const lab = syncLabel();
+  host.innerHTML = `
+    <div class="group">
+      <div class="row"><span class="grow">Konto</span><span class="val">${esc((sync.user && (sync.user.name || sync.user.upn)) || 'Microsoft 365')}</span></div>
+      <div class="row"><span class="grow">Status</span><span class="val" ${lab && lab[2] ? 'style="color:var(--orange)"' : ''}>${esc(lab ? lab[0] : '–')}</span></div>
+      <div class="row"><span class="grow">Zuletzt abgeglichen</span><span class="val">${esc(last)}</span></div>
+    </div>
+    ${syncState.s === 'error' ? `<p class="sec-f" style="color:var(--orange)">${esc(syncState.msg)}</p>` : ''}
+    <div class="sec"><div class="group">
+      <button class="row action" data-action="sync-now"><span class="grow">Jetzt abgleichen</span></button>
+      ${syncState.s === 'login' ? '<button class="row action" data-action="sync-login"><span class="grow">Anmeldung erneuern</span></button>' : ''}
+      <button class="row danger" data-action="sync-logout"><span class="grow">Abmelden</span></button>
+    </div><p class="sec-f">Gespeichert in OneDrive → Apps → Besprechungsprotokoll. Ältere Besprechungen liegen dort im Ordner „Archiv“. Die Anmeldung muss etwa einmal am Tag mit einem Tipp erneuert werden.</p></div>`;
+}
+
+/* =====================================================================
+   Bewegung – nach Apples „Designing Fluid Interfaces“.
+   Federn statt fester Animationen: starten immer am aktuellen Wert,
+   übernehmen Geschwindigkeit, lassen sich jederzeit greifen und umlenken.
+   ===================================================================== */
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+class Spring {
+  // damping 1 = kritisch gedämpft (kein Überschwingen), response = Reaktionszeit in s
+  constructor(value, onUpdate, precision = 0.01) {
+    this.x = value; this.v = 0; this.target = value; this.onUpdate = onUpdate; this.eps = precision;
+    this.raf = 0; this.done = null; this.tick = this.tick.bind(this);
+  }
+  get animating() { return !!this.raf; }
+  set(value) { this.stop(); this.x = this.target = value; this.v = 0; this.onUpdate(value); }
+  to(target, { damping = 1, response = 0.35, velocity } = {}, done) {
+    this.target = target;
+    if (velocity !== undefined) this.v = velocity;
+    this.k = (2 * Math.PI / response) ** 2;
+    this.c = 4 * Math.PI * damping / response;
+    if (reducedMotion.matches) { this.set(target); if (done) done(); return this; }
+    this.done = done || null;
+    if (!this.raf) { this.last = performance.now(); this.raf = requestAnimationFrame(this.tick); }
+    return this;
+  }
+  tick(now) {
+    const dt = Math.min(0.064, (now - this.last) / 1000); this.last = now;
+    const n = Math.max(1, Math.ceil(dt / 0.004)), h = dt / n;
+    for (let i = 0; i < n; i++) { const a = -this.k * (this.x - this.target) - this.c * this.v; this.v += a * h; this.x += this.v * h; }
+    if (Math.abs(this.x - this.target) < this.eps && Math.abs(this.v) < this.eps * 10) {
+      this.x = this.target; this.v = 0; this.raf = 0; this.onUpdate(this.x); this.finish(); return;
+    }
+    this.onUpdate(this.x);
+    this.raf = requestAnimationFrame(this.tick);
+  }
+  finish() { const d = this.done; this.done = null; if (d) d(); }
+  stop() { if (this.raf) cancelAnimationFrame(this.raf); this.raf = 0; this.done = null; }
+}
+// Wohin ein Wurf führt (Apples Projektionsformel, Abklingrate wie beim Scrollen)
+const project = (v, rate = 0.998) => (v / 1000) * rate / (1 - rate);
+// Weicher Widerstand jenseits einer Grenze statt hartem Stopp
+const rubberband = (over, dim, c = 0.55) => (over * dim * c) / (dim + c * Math.abs(over));
+// Geschwindigkeit aus den letzten Zeigerbewegungen (px/s)
+function velocityOf(hist) {
+  const now = hist[hist.length - 1]; if (!now) return 0;
+  let i = hist.length - 1; while (i > 0 && now.t - hist[i - 1].t < 100) i--;
+  const first = hist[i]; const dt = (now.t - first.t) / 1000;
+  return dt > 0 ? (now.p - first.p) / dt : 0;
+}
+
+/* ---------- Segment-Steuerung: gleitende Markierung ---------- */
+const segMemory = new Map(), segStates = new WeakMap();
+function syncSeg(seg, animate = true) {
+  if (!seg || !seg.offsetParent) return;
+  let th = seg.querySelector(':scope > .seg-thumb');
+  if (!th) { th = document.createElement('span'); th.className = 'seg-thumb'; th.setAttribute('aria-hidden', 'true'); seg.prepend(th); }
+  const btn = seg.querySelector(':scope > button[aria-pressed="true"]');
+  if (!btn) { th.style.opacity = '0'; return; }
+  th.style.opacity = '1';
+  const tx = btn.offsetLeft, tw = btn.offsetWidth, key = seg.dataset.key;
+  let st = segStates.get(seg);
+  if (!st) {
+    const prev = key && segMemory.get(key);
+    const apply = () => { th.style.transform = `translate3d(${st.x.x}px,0,0)`; th.style.width = st.w.x + 'px'; };
+    st = { x: new Spring(prev ? prev.x : tx, () => apply(), 0.1), w: new Spring(prev ? prev.w : tw, () => apply(), 0.1) };
+    segStates.set(seg, st); apply();
+  }
+  if (animate) { st.x.to(tx, { response: 0.3 }); st.w.to(tw, { response: 0.3 }); } else { st.x.set(tx); st.w.set(tw); }
+  if (key) segMemory.set(key, { x: tx, w: tw });
+}
+function syncSegs(root, animate = true) { if (root) $$('.seg', root).forEach((s) => syncSeg(s, animate)); }
+
+/* ---------- Dialoge: Blatt, Popover, Hinweis ---------- */
+const dlgStates = new WeakMap();
+const phone = matchMedia('(max-width: 700px)');
+const dlgKind = (d) => (d.dataset.kind === 'popover' && phone.matches ? 'sheet' : d.dataset.kind || 'sheet');
+function dlgState(d) {
+  let st = dlgStates.get(d);
+  if (st && st.kind !== dlgKind(d) && !d.open) { st.spring.stop(); st = null; d.style.transform = ''; d.style.opacity = ''; }
+  if (!st) {
+    const kind = dlgKind(d);
+    st = { kind, H: 600 };
+    // Blatt: Wert = Versatz nach unten in px. Popover/Hinweis: Wert = Fortschritt 0…1
+    st.spring = kind === 'sheet' ? new Spring(0, (y) => applyDlg(d, st, y), 0.5) : new Spring(0, (p) => applyDlg(d, st, p), 0.001);
+    dlgStates.set(d, st);
+  }
+  return st;
+}
+function closedValue(st) { return st.kind === 'sheet' ? st.H + 40 : 0; }
+function applyDlg(d, st, v) {
+  let p;
+  if (st.kind === 'sheet') {
+    p = 1 - Math.max(0, v) / (st.H + 40);
+    d.style.transform = v ? `translate3d(0,${v}px,0)` : '';
+  } else {
+    p = v;
+    const s = st.kind === 'popover' ? 0.86 + 0.14 * p : 1.1 - 0.1 * p;
+    d.style.transform = p >= 1 ? '' : `scale(${s})`;
+    d.style.opacity = String(Math.max(0, Math.min(1, p)));
+    if (st.kind === 'popover') d.style.setProperty('--mat-blur', Math.round(30 * Math.max(0, Math.min(1, p))) + 'px');
+  }
+  st.p = Math.max(0, Math.min(1, p));
+  updateScrim();
+}
+function updateScrim() {
+  let p = 0;
+  $$('dialog').forEach((d) => { const st = dlgStates.get(d); if (st && d.open && st.kind !== 'popover') p = Math.max(p, st.p || 0); });
+  const s = $('#scrim'); s.style.opacity = String(p); s.hidden = p <= 0;
+}
+function openDlg(d, trigger) {
+  const st = dlgState(d);
+  if (d.classList.contains('closing')) { d.classList.remove('closing'); d.close(); }
+  const wasClosed = !d.open;
+  if (wasClosed) { d.style.opacity = '0'; d.showModal(); }
+  if (st.kind === 'popover' && trigger) {
+    const r = trigger.getBoundingClientRect(), dr = d.getBoundingClientRect();
+    d.style.transformOrigin = `${r.left + r.width / 2 - dr.left}px ${r.top + r.height / 2 - dr.top}px`;
+  }
+  if (st.kind === 'sheet') {
+    st.H = d.offsetHeight || 600;
+    if (wasClosed && !st.spring.animating) st.spring.set(closedValue(st));
+    d.style.opacity = '';
+    st.spring.to(0, { damping: 1, response: 0.35 });
+  } else {
+    if (wasClosed && !st.spring.animating) st.spring.set(0);
+    st.spring.to(1, { damping: 1, response: st.kind === 'popover' ? 0.3 : 0.25 });
+  }
+}
+function closeDlg(d, { velocity } = {}) {
+  if (!d || !d.open || d.classList.contains('closing')) return;
+  const st = dlgState(d);
+  d.close();                      // sofort: Eingaben gehen zurück an die App
+  d.classList.add('closing');     // nur noch die Ausblend-Bewegung
+  d.show();
+  const end = () => { d.ignoreClose = (d.ignoreClose || 0) + 1; d.close(); d.classList.remove('closing'); d.style.transform = ''; updateScrim(); };
+  if (reducedMotion.matches) { d.style.opacity = '0'; setTimeout(end, 200); updateScrim(); return; }
+  st.spring.to(closedValue(st), { damping: 1, response: st.kind === 'sheet' ? 0.32 : 0.22, velocity }, end);
+}
+// Blätter lassen sich am Kopf nach unten wegziehen – 1:1, mit Schwung und Gummiband nach oben
+function enableSheetDrag(d) {
+  const head = d.querySelector('.dlg-head'); if (!head) return;
+  head.addEventListener('pointerdown', (e) => {
+    if (e.button || e.target.closest('button,input,select,textarea,a')) return;
+    const st = dlgState(d); if (st.kind !== 'sheet' || d.classList.contains('closing')) return;
+    st.spring.stop();
+    try { head.setPointerCapture(e.pointerId); } catch (_) { /* egal */ }
+    const y0 = st.spring.x, startY = e.clientY, hist = [{ p: y0, t: e.timeStamp }];
+    const move = (ev) => {
+      const raw = y0 + (ev.clientY - startY);
+      const y = raw < 0 ? rubberband(raw, st.H) : raw;
+      st.spring.x = y; applyDlg(d, st, y);
+      hist.push({ p: raw, t: ev.timeStamp }); if (hist.length > 20) hist.shift();
+    };
+    const up = () => {
+      head.removeEventListener('pointermove', move); head.removeEventListener('pointerup', up); head.removeEventListener('pointercancel', up);
+      const v = velocityOf(hist), y = st.spring.x;
+      const commit = v > 300 || (v > -300 && y + project(v) > st.H * 0.4);
+      if (commit) closeDlg(d, { velocity: v });
+      else st.spring.to(0, { damping: 0.8, response: 0.3, velocity: v });
+    };
+    head.addEventListener('pointermove', move); head.addEventListener('pointerup', up); head.addEventListener('pointercancel', up);
+  });
+}
+
+/* ---------- Fokus: zwischen Punkten wischen ---------- */
+const focusMotion = { spring: null, phase: 'idle', pending: 0 };
+function focusEl() { return $('#v-focus .focus-grid'); }
+function applyFocus(x) {
+  const el = focusEl(); if (!el) return;
+  const W = Math.max(320, el.offsetWidth * 0.35);
+  el.style.transform = x ? `translate3d(${x}px,0,0)` : '';
+  el.style.opacity = x ? String(1 - Math.min(1, Math.abs(x) / W) * 0.9) : '';
+}
+focusMotion.spring = new Spring(0, applyFocus, 0.5);
+function slideTo(dir, velocity) {
+  // Spatial: „Weiter“ geht nach links hinaus, der neue Punkt kommt von rechts – und umgekehrt
+  const p = byId(prefs.focusId); if (!p) return;
+  const n = neighbor(p, dir);
+  if (!n) { if (dir > 0) { focusMotion.spring.set(0); setView('summary'); } else focusMotion.spring.to(0, { damping: 0.8, response: 0.3, velocity }); return; }
+  const el = focusEl(); const W = el ? Math.max(320, el.offsetWidth * 0.35) : 360;
+  if (reducedMotion.matches) { step(dir); return; }
+  focusMotion.phase = 'out'; focusMotion.pending = dir;
+  const v = velocity !== undefined ? velocity : -dir * 1600;
+  focusMotion.spring.to(-dir * W, { damping: 1, response: 0.22, velocity: v }, () => swapFocus(dir, focusMotion.spring.v || v));
+}
+function swapFocus(dir, v) {
+  const el = focusEl(); const W = el ? Math.max(320, el.offsetWidth * 0.35) : 360;
+  focusMotion.phase = 'in'; focusMotion.pending = 0;
+  step(dir);
+  focusMotion.spring.set(dir * W);
+  focusMotion.spring.to(0, { damping: 1, response: 0.32, velocity: v }, () => { focusMotion.phase = 'idle'; });
+}
+function enableFocusSwipe() {
+  const host = $('#v-focus');
+  host.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'pen' || e.button) return; // Apple Pencil schreibt (Scribble), wischt nicht
+    if (e.target.closest('input,textarea,select,button,.chips,.seg,[role="button"],.focusbar,.group')) return;
+    if (!focusEl() || !focusEl().contains(e.target)) return;
+    if (focusMotion.phase === 'out') swapFocus(focusMotion.pending, focusMotion.spring.v);
+    const sp = focusMotion.spring; sp.stop();
+    const x0 = sp.x, sx = e.clientX, sy = e.clientY, t0 = e.timeStamp;
+    let mode = 'wait'; const hist = [{ p: x0, t: e.timeStamp }];
+    const move = (ev) => {
+      const dx = ev.clientX - sx, dy = ev.clientY - sy;
+      if (mode === 'wait') {
+        if (ev.timeStamp - t0 > 450 && Math.hypot(dx, dy) < 10) { mode = 'none'; return; } // langes Drücken = Text markieren
+        if (Math.hypot(dx, dy) < 10) return;
+        mode = Math.abs(dx) > Math.abs(dy) * 1.2 ? 'drag' : 'none';
+        if (mode === 'drag') { try { host.setPointerCapture(e.pointerId); } catch (_) { /* egal */ } }
+      }
+      if (mode !== 'drag') return;
+      ev.preventDefault();
+      const p = byId(prefs.focusId); const raw = x0 + dx;
+      const blocked = raw > 0 && !neighbor(p, -1);
+      const x = blocked ? rubberband(raw, focusEl().offsetWidth) : raw;
+      sp.x = x; applyFocus(x);
+      hist.push({ p: raw, t: ev.timeStamp }); if (hist.length > 20) hist.shift();
+    };
+    const up = () => {
+      host.removeEventListener('pointermove', move); host.removeEventListener('pointerup', up); host.removeEventListener('pointercancel', up);
+      if (mode !== 'drag') return;
+      const v = velocityOf(hist), x = sp.x, end = x + project(v);
+      const dir = end < 0 ? 1 : -1;
+      // Richtung der Geschwindigkeit entscheidet; Projektion entscheidet über die Weite
+      const commit = Math.abs(end) > 120 && Math.sign(v || x) === Math.sign(end);
+      if (commit) slideTo(dir, v); else sp.to(0, { damping: 0.8, response: 0.3, velocity: v });
+    };
+    host.addEventListener('pointermove', move); host.addEventListener('pointerup', up); host.addEventListener('pointercancel', up);
+  });
+}
+
+/* ---------- Kleine physische Rückmeldungen ---------- */
+function nudge(el) { // Hinweis in Richtung der nächsten Geste: „Weiter“ wippt kurz nach rechts
+  if (!el || reducedMotion.matches) return;
+  new Spring(0, (x) => { el.style.transform = x ? `translate3d(${x}px,0,0)` : ''; }, 0.05).to(0, { damping: 0.45, response: 0.35, velocity: 220 });
+}
+function flipRows(before) { // verschobene Zeilen wandern sichtbar an ihren neuen Platz
+  $$('#cards .pt-row').forEach((r) => {
+    const b = before.get(r.dataset.card); if (b == null) return;
+    const dy = b - r.getBoundingClientRect().top; if (Math.abs(dy) < 1) return;
+    new Spring(dy, (v) => { r.style.transform = Math.abs(v) > 0.1 ? `translate3d(0,${v}px,0)` : ''; }, 0.1).to(0, { damping: 1, response: 0.35 });
+  });
+}
+
+/* ---------- Ansichten ---------- */
+let reorder = false;
+function setView(v) {
+  trackStop();
+  prefs.view = v; savePrefs();
+  render();
+  window.scrollTo(0, 0);
+  trackStart();
+}
+function render() {
+  if (!['overview', 'focus', 'summary'].includes(prefs.view)) prefs.view = 'overview';
+  const v = prefs.view;
+  $$('.view').forEach((s) => { s.hidden = s.id !== 'v-' + v; });
+  $$('[data-view]').forEach((t) => { const on = t.dataset.view === v; t.setAttribute('aria-pressed', String(on)); t.setAttribute('aria-selected', String(on)); });
+  if (v === 'overview') renderOverview();
+  else if (v === 'focus') renderFocus();
+  else renderSummary();
+  renderTimer();
+  growAll($('#v-' + v));
+  syncSegs($('#topbar'));
+  updateEdges();
+}
+function updateEdges() {
+  const y = window.scrollY > 1;
+  $('#topbar').classList.toggle('edge', y && prefs.view !== 'focus');
+  const fb = $('#v-focus .focusbar'); if (fb) fb.classList.toggle('edge', y);
+}
+const chev = () => ic('right', 'chev');
+const dot = (s) => `<span class="status st-${s}"><i></i>${STATUS_LABEL[s]}</span>`;
+function needsBackup() {
+  const m = data.meta;
+  return data.punkte.length && m.geaendert && (!m.letztesBackup || m.geaendert > m.letztesBackup);
+}
+function safariNote() {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+  if (!isIOS || standalone || prefs.safariHintDismissed) return '';
+  return `<div class="note">${ic('info')}<p><b>Zum Home-Bildschirm hinzufügen:</b> Teilen-Symbol → „Zum Home-Bildschirm“. Die App dort hat einen eigenen Speicher – Daten aus diesem Safari-Tab erscheinen dort nicht.</p><button class="plain strong" data-action="dismiss-safari">OK</button></div>`;
+}
+function headerHTML() {
+  const m = data.meeting, c = counts();
+  const eyebrow = [m.datum ? fmtDate(m.datum) : '', m.beginn ? m.beginn + (m.ende ? '–' + m.ende : '') + ' Uhr' : '', m.ort].filter(Boolean).join(' · ');
+  const pct = (n) => (c.total ? (n / c.total) * 100 : 0);
+  return `<header>
+    ${eyebrow ? `<div class="eyebrow">${esc(eyebrow)}</div>` : ''}
+    <h1 class="large">${esc(m.titel) || 'Besprechung'}</h1>
+    <div class="page-sub"><span>${participants().length ? esc(names(m.teilnehmer).join(', ')) : 'Noch keine Teilnehmer'}</span><button class="plain" data-action="open-meeting">Kopfdaten</button></div>
+    ${c.total ? `<div class="progress"><div class="ptext" id="progressText"><b>${c.durch} von ${c.total}</b> besprochen${c.vertagt ? ` · ${c.vertagt} vertagt` : ''} · ${c.beschluesse} ${c.beschluesse === 1 ? 'Maßnahme' : 'Maßnahmen'}</div>
+      <div class="bar" aria-hidden="true"><span style="width:${pct(c.besprochen)}%;background:var(--green-dot)"></span><span style="width:${pct(c.erledigt)}%;background:var(--blue)"></span><span style="width:${pct(c.vertagt)}%;background:var(--orange-dot)"></span></div></div>` : ''}
+  </header>`;
+}
+
+function renderOverview() {
+  const host = $('#v-overview'), c = counts();
+  if (!c.total) {
+    host.innerHTML = `<div class="wrap">${safariNote()}${headerHTML()}
+      <div class="empty">${ic('doc', 'big-ic')}
+        <h2>Noch keine Punkte</h2>
+        <p>Füge deine vorbereitete Liste ein. Daraus entstehen automatisch einzelne Punkte mit Kritik und Lösungsvorschlag.</p>
+        <div class="actions">
+          <button class="btn" data-action="open-import">Liste importieren</button>
+          <button class="plain" data-action="add-point">Punkt einzeln anlegen</button>
+          <button class="plain" data-action="backup-load">Backup laden</button>
+          <button class="plain" data-action="load-sample">Beispiel ansehen</button>
+        </div>
+      </div></div>`;
+    return;
+  }
+  const katCounts = {}; data.punkte.forEach((p) => { katCounts[p.kategorie] = (katCounts[p.kategorie] || 0) + 1; });
+  host.innerHTML = `<div class="wrap">${safariNote()}${headerHTML()}
+    <div class="controls">
+      <div class="seg" data-key="filter" role="group" aria-label="Nach Status filtern">
+        ${['alle', ...STATUS].map((s) => `<button data-action="filter-status" data-value="${s}" aria-pressed="${prefs.fStatus === s}">${s === 'alle' ? 'Alle' : s === 'besprochen' ? '<span class="l-long">Besprochen</span><span class="l-short">Bespr.</span>' : STATUS_LABEL[s]} <span class="cnt">${s === 'alle' ? c.total : c[s]}</span></button>`).join('')}
+      </div>
+      <div class="search">${ic('search')}<input type="search" id="searchInput" placeholder="Suchen" value="${esc(search)}" autocomplete="off"></div>
+      <select class="pill" id="fKat" aria-label="Kategorie">
+        <option value="alle">Alle Kategorien</option>
+        ${KATEGORIEN.map((k) => `<option value="${esc(k)}" ${prefs.fKat === k ? 'selected' : ''}>${esc(k)} (${katCounts[k] || 0})</option>`).join('')}
+      </select>
+      <button class="plain strong" data-action="toggle-reorder" style="min-height:36px">${reorder ? 'Fertig' : 'Sortieren'}</button>
+    </div>
+    <div class="group" id="cards"></div></div>`;
+  renderCards();
+  syncSegs(host);
+}
+function renderCards() {
+  const host = $('#cards'); if (!host) return;
+  const list = data.punkte.map((p, i) => ({ p, nr: i + 1 })).filter((x) => matchesFilter(x.p) && matchesSearch(x.p));
+  if (!list.length) { host.innerHTML = `<div class="row"><span class="grow muted">Keine Punkte für diesen Filter.</span><button class="plain" data-action="clear-filter">Filter aufheben</button></div>`; return; }
+  host.innerHTML = list.map(({ p, nr }, i) => {
+    const meta = [p.kategorie];
+    if (p.verantwortlich.trim()) meta.push(p.verantwortlich.trim());
+    if (p.frist) meta.push('bis ' + fmtDE(p.frist));
+    return `<div class="pt-row point-card" data-card="${p.id}">
+      <div class="pt-main" role="button" tabindex="0" data-action="open-point" data-id="${p.id}" aria-label="Punkt ${nr} öffnen">
+        <span class="pt-nr">${nr}</span>
+        <div class="pt-body">
+          <div class="pt-title">${p.prioritaet === 'hoch' ? '<span class="prio-mark" title="Priorität hoch">!!</span>' : ''}${esc(oneLine(p.kritik)) || '<span class="muted">Ohne Text</span>'}</div>
+          ${p.beschluss.trim() ? `<div class="pt-dec">${esc(oneLine(p.beschluss))}</div>` : ''}
+          <div class="pt-meta">${esc(meta.join(' · '))}${p.ergaenzt ? ' · <span class="new">Neu</span>' : ''}</div>
+        </div>
+        ${p.status !== 'offen' ? dot(p.status) : ''}
+        ${reorder ? '' : chev()}
+      </div>
+      ${reorder ? `<div class="pt-reorder">
+        <button class="icon-btn" data-action="move" data-dir="-1" data-scope="visible" data-id="${p.id}" aria-label="Punkt ${nr} nach oben" ${i === 0 ? 'disabled' : ''}>${ic('up')}</button>
+        <button class="icon-btn" data-action="move" data-dir="1" data-scope="visible" data-id="${p.id}" aria-label="Punkt ${nr} nach unten" ${i === list.length - 1 ? 'disabled' : ''}>${ic('down')}</button></div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function neighbor(p, dir) {
+  const arr = data.punkte; let i = arr.indexOf(p) + dir;
+  while (i >= 0 && i < arr.length) { if (matchesFilter(arr[i])) return arr[i]; i += dir; }
+  return null;
+}
+function ownerChipsHTML(p) {
+  const ps = participants();
+  if (!ps.length) return `<button class="plain" data-action="open-meeting">Teilnehmer eintragen</button>`;
+  return ps.map((n) => `<button class="chip" data-action="set" data-id="${p.id}" data-key="verantwortlich" data-value="${esc(n)}" aria-pressed="${p.verantwortlich.trim().toLowerCase() === n.toLowerCase()}">${esc(n)}</button>`).join('');
+}
+function fristOptions() {
+  const base = data.meeting.datum || isoDate(new Date());
+  const o = [['+1 Woche', addDays(base, 7)], ['+2 Wochen', addDays(base, 14)], ['+4 Wochen', addDays(base, 28)], ['Monatsende', monthEnd(addDays(base, 7))]];
+  if (data.meeting.naechsterTermin) o.push(['Nächster Termin', data.meeting.naechsterTermin]);
+  return o;
+}
+function fristChipsHTML(p) {
+  return fristOptions().map(([l, v]) => `<button class="chip" data-action="set" data-id="${p.id}" data-key="frist" data-value="${v}" aria-pressed="${p.frist === v}">${l}</button>`).join('');
+}
+function fristHint(p) {
+  if (!p.frist) return '';
+  const d = daysFromToday(p.frist);
+  const rel = d === 0 ? 'heute' : d === 1 ? 'morgen' : d > 1 ? `in ${d} Tagen` : `vor ${-d} Tagen`;
+  return `${fmtDate(p.frist)} · ${rel}`;
+}
+function hintsHTML(p) { return pointHints(p).map(([lvl, t]) => `<div class="hint ${lvl === 'info' ? 'info' : ''}">${ic(lvl === 'info' ? 'info' : 'alert')}<span>${esc(t)}</span></div>`).join(''); }
+
+function renderFocus() {
+  const host = $('#v-focus');
+  const pts = data.punkte;
+  if (!pts.length) {
+    host.innerHTML = `<div class="wrap"><div class="empty">${ic('doc', 'big-ic')}<h2>Noch keine Punkte</h2><p>Importiere zuerst deine Liste oder lege einen Punkt an.</p><div class="actions"><button class="btn" data-action="open-import">Liste importieren</button><button class="plain" data-action="add-point">Punkt anlegen</button></div></div></div>`;
+    return;
+  }
+  let p = byId(prefs.focusId);
+  if (!p) { p = pts.find(matchesFilter) || pts[0]; prefs.focusId = p.id; savePrefs(); }
+  const nr = pts.indexOf(p) + 1;
+  const prevP = neighbor(p, -1), nextP = neighbor(p, 1);
+  const edit = focusEdit || (!p.kritik.trim() && !p.loesung.trim());
+  const eyebrow = [p.kategorie, p.herkunft, p.urspNr && p.urspNr !== nr ? 'Liste Nr. ' + p.urspNr : ''].filter(Boolean).join(' · ');
+  const left = edit ? `
+      <span class="label">Kritik</span>
+      <div class="group"><textarea class="field-in" rows="3" data-id="${p.id}" data-field="kritik" id="f-kritik" placeholder="Was läuft nicht gut?">${esc(p.kritik)}</textarea></div>
+      <span class="label">Lösungsvorschlag</span>
+      <div class="group">
+        <textarea class="field-in" rows="3" data-id="${p.id}" data-field="loesung" placeholder="Vorbereiteter Vorschlag">${esc(p.loesung)}</textarea>
+        <textarea class="field-in" rows="1" data-id="${p.id}" data-field="offen" placeholder="Offen / zu klären (wird hervorgehoben)">${esc(p.offen)}</textarea>
+      </div>
+      <div class="sec" style="margin-top:22px"><div class="group">
+        <label class="row"><span class="grow">Kategorie</span><select class="inrow" data-id="${p.id}" data-field="kategorie">${KATEGORIEN.map((k) => `<option ${p.kategorie === k ? 'selected' : ''}>${esc(k)}</option>`).join('')}</select></label>
+        <div class="row"><span class="grow">Herkunft</span><div class="seg" data-key="hk-${p.id}" style="width:250px">${HERKUNFT.map((h) => `<button data-action="set" data-id="${p.id}" data-key="herkunft" data-value="${h}" aria-pressed="${p.herkunft === h}">${h === 'Geschäftsführung' ? 'GF' : h}</button>`).join('')}</div></div>
+      </div></div>
+      <div class="sec" style="margin-top:22px"><div class="group">
+        <button class="row action" data-action="move" data-dir="-1" data-id="${p.id}" ${nr === 1 ? 'disabled' : ''}>${ic('up', 'lead')}<span class="grow">Nach oben</span></button>
+        <button class="row action" data-action="move" data-dir="1" data-id="${p.id}" ${nr === pts.length ? 'disabled' : ''}>${ic('down', 'lead')}<span class="grow">Nach unten</span></button>
+        <button class="row danger" data-action="delete-point" data-id="${p.id}"><span class="grow">Punkt löschen</span></button>
+      </div></div>
+      <div style="margin-top:18px"><button class="btn" data-action="toggle-edit">Fertig</button></div>`
+    : `
+      <div class="eyebrow">${esc(eyebrow)}${p.ergaenzt ? ' · <span style="color:var(--blue)">Im Gespräch ergänzt</span>' : ''}</div>
+      <div class="kritik-text">${esc(p.kritik) || '<span class="muted">—</span>'}</div>
+      <span class="label">Lösungsvorschlag</span>
+      <div class="loesung-text">${esc(p.loesung) || '<span class="muted">Kein Vorschlag vorbereitet</span>'}</div>
+      ${p.offen.trim() ? `<div class="offen-box"><b>Offen</b>${esc(p.offen)}</div>` : ''}
+      <div style="margin-top:14px"><button class="plain" data-action="toggle-edit">Bearbeiten</button></div>`;
+  host.innerHTML = `
+    <div class="focusbar">
+      <button class="plain" data-action="step" data-dir="-1" ${prevP ? '' : 'disabled'} aria-label="Zurück">${ic('left')}<span>Zurück</span></button>
+      <div class="focus-pos">
+        <div class="fp-main">Punkt ${nr} von ${pts.length}</div>
+        <div class="fp-sub" id="paceLine">${esc(paceText())}${filterActive() ? ` · <button class="plain" data-action="clear-filter">Filter „${esc(filterLabel())}“ aufheben</button>` : ''}</div>
+      </div>
+      <button class="btn" id="btnNext" data-action="step" data-dir="1">${nextP ? 'Weiter' : 'Abschluss'}${ic('right')}</button>
+    </div>
+    <div class="wrap focus-grid" style="max-width:1260px">
+      <section aria-label="Vorbereitet">
+        ${returnTo && returnTo !== p.id && byId(returnTo) ? `<button class="chip back-chip" data-action="open-point" data-id="${returnTo}">${ic('left')}Zurück zu Punkt ${nrOf(returnTo)}</button>` : ''}
+        ${left}
+      </section>
+      <section class="right" aria-label="Im Gespräch">
+        <div class="seg seg-status big" data-key="st-${p.id}" role="group" aria-label="Status">${STATUS.map((s) => `<button data-action="set" data-id="${p.id}" data-key="status" data-value="${s}" aria-pressed="${p.status === s}">${STATUS_LABEL[s]}</button>`).join('')}</div>
+        <span class="label">Notizen</span>
+        <div class="group"><textarea class="field-in notes-ta" rows="5" data-id="${p.id}" data-field="notizen" placeholder="Was wurde gesagt? Tippen, diktieren oder mit dem Pencil schreiben.">${esc(p.notizen)}</textarea></div>
+        <span class="label">Beschluss</span>
+        <div class="group">
+          <textarea class="field-in" rows="2" data-id="${p.id}" data-field="beschluss" placeholder="Was genau wird gemacht?">${esc(p.beschluss)}</textarea>
+          <input class="field-in" type="text" data-id="${p.id}" data-field="kriterium" value="${esc(p.kriterium)}" placeholder="Erledigt, wenn … (optional)">
+        </div>
+        <div class="grid2">
+          <div><label class="label" for="f-owner">Verantwortlich</label>
+            <div class="group"><input class="field-in" type="text" id="f-owner" data-id="${p.id}" data-field="verantwortlich" value="${esc(p.verantwortlich)}" autocapitalize="words" autocomplete="off" placeholder="Eine Person"></div>
+            <div class="chips" id="ownerChips">${ownerChipsHTML(p)}</div>
+          </div>
+          <div><label class="label" for="f-frist">Frist</label>
+            <div class="group"><input class="field-in" type="date" id="f-frist" data-id="${p.id}" data-field="frist" value="${esc(p.frist)}"></div>
+            <div class="date-hint" id="fristHint">${esc(fristHint(p))}</div>
+            <div class="chips" id="fristChips">${fristChipsHTML(p)}</div>
+          </div>
+        </div>
+        <span class="label">Priorität</span>
+        <div class="seg seg-prio" data-key="pr-${p.id}" role="group" aria-label="Priorität">${PRIO.map((x) => `<button data-action="set" data-id="${p.id}" data-key="prioritaet" data-value="${x}" aria-pressed="${p.prioritaet === x}">${PRIO_LABEL[x]}</button>`).join('')}</div>
+        <div class="hints" id="gapHints">${hintsHTML(p)}</div>
+        <div class="tiny" id="ptTime">${ptTimeText(p)}</div>
+      </section>
+    </div>`;
+  syncSegs(host);
+}
+function ptTimeText(p) {
+  const ms = p.zeitMs + (tracking.id === p.id ? Date.now() - tracking.since : 0);
+  if (!meetingRunning() && ms < 60000) return '';
+  return `${ic('clock')} ${ms < 60000 ? 'Unter 1 Min.' : fmtMin(ms)} bei diesem Punkt`;
+}
+function refreshFocusLive(p) {
+  if (prefs.view !== 'focus') return;
+  const oc = $('#ownerChips'); if (oc) oc.innerHTML = ownerChipsHTML(p);
+  const fc = $('#fristChips'); if (fc) fc.innerHTML = fristChipsHTML(p);
+  const fh = $('#fristHint'); if (fh) fh.textContent = fristHint(p);
+  const gh = $('#gapHints'); if (gh) gh.innerHTML = hintsHTML(p);
+}
+
+function renderSummary() {
+  const host = $('#v-summary');
+  const c = counts(), g = gaps(), acts = actions();
+  const vert = data.punkte.map((p, i) => ({ p, nr: i + 1 })).filter((x) => x.p.status === 'vertagt');
+  const m = data.meeting;
+  host.innerHTML = `<div class="wrap" style="max-width:860px">
+    <h1 class="large">Abschluss</h1>
+    <div class="page-sub">${c.durch} von ${c.total} besprochen · ${c.vertagt} vertagt · ${c.beschluesse} ${c.beschluesse === 1 ? 'Maßnahme' : 'Maßnahmen'}</div>
+    <div class="lead-actions">
+      <button class="btn" data-action="readback" ${acts.length ? '' : 'disabled'}>Maßnahmen vorlesen</button>
+      ${needsBackup() ? `<button class="btn tinted" data-action="backup-save">${ic('shield')}Backup sichern</button>` : ''}
+    </div>
+    <div class="sec">
+      <div class="sec-h">Noch zu klären</div>
+      <div class="group">
+        ${g.length ? g.map((x) => `<button class="row gap-row ${x.lvl}" ${x.id ? `data-action="open-point" data-id="${x.id}"` : `data-action="${x.act}"`}>${ic(x.lvl === 'warn' ? 'alert' : 'info')}<span class="grow">${x.nr && !x.sammel ? `Punkt ${x.nr}: ` : ''}${esc(x.text)}</span>${chev()}</button>`).join('')
+          : `<div class="row all-good">${ic('check')}<span class="grow">Alles vollständig – jede Maßnahme hat Verantwortlichen und Frist.</span></div>`}
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-h"><span>Maßnahmen</span>
+        <div class="seg" data-key="sort" role="group" aria-label="Sortierung">${[['nr', 'Nr.'], ['person', 'Person'], ['frist', 'Frist']].map(([v, l]) => `<button data-action="sort" data-value="${v}" aria-pressed="${prefs.actionsSort === v}">${l}</button>`).join('')}</div></div>
+      <div class="group">
+        ${acts.length ? acts.map(({ p, nr }) => `<div class="row act" role="button" data-action="open-point" data-id="${p.id}"><span class="pt-nr">${nr}</span><div class="grow">
+            <div class="what">${esc(p.beschluss)}</div>
+            <div class="who">${p.verantwortlich.trim() ? esc(p.verantwortlich) : '<span class="miss">Wer?</span>'} · ${p.frist ? 'bis ' + esc(fmtDate(p.frist)) : '<span class="miss">Bis wann?</span>'}${p.kriterium.trim() ? ' · Erledigt, wenn: ' + esc(p.kriterium) : ''}${p.bestaetigt ? ' · <span class="ok">bestätigt</span>' : ''}</div>
+          </div>${p.status !== 'offen' ? dot(p.status) : ''}${chev()}</div>`).join('')
+          : '<div class="row muted">Noch keine Beschlüsse. Sie werden im Fokus beim jeweiligen Punkt eingetragen.</div>'}
+      </div>
+    </div>
+    ${vert.length ? `<div class="sec"><div class="sec-h">Vertagt</div><div class="group">
+      ${vert.map(({ p, nr }) => `<button class="row" data-action="open-point" data-id="${p.id}"><span class="pt-nr">${nr}</span><span class="grow">${esc(oneLine(p.kritik))}</span>${chev()}</button>`).join('')}
+      </div><p class="sec-f">Vertagte Punkte werden bei einer Folgebesprechung automatisch übernommen.</p></div>` : ''}
+    <div class="sec">
+      <div class="sec-h">Nachverfolgung</div>
+      <div class="group">
+        <label class="frow"><span>Nächster Termin</span><input class="field-in" type="date" id="sumNext" data-mfield="naechsterTermin" value="${esc(m.naechsterTermin)}"></label>
+        <div class="row"><div class="chips">${[['In 4 Wochen', 28], ['In 6 Wochen', 42], ['In 8 Wochen', 56]].map(([l, n]) => { const v = addDays(m.datum || isoDate(new Date()), n); return `<button class="chip" data-action="set-next" data-value="${v}" aria-pressed="${m.naechsterTermin === v}">${l}</button>`; }).join('')}</div></div>
+        <textarea class="field-in" rows="3" data-mfield="notizen" placeholder="Allgemeine Notizen – was läuft gut, was nehmen wir mit?">${esc(m.notizen)}</textarea>
+      </div>
+    </div>
+  </div>`;
+  syncSegs(host);
+}
+
+/* ---------- Blätter: Teilen & Mehr ---------- */
+const sw = (key, label) => `<label class="row"><span class="grow">${label}</span><input type="checkbox" class="switch" data-pref="${key}" ${prefs[key] ? 'checked' : ''}></label>`;
+function renderShare() {
+  const c = counts(), dis = c.beschluesse ? '' : 'disabled';
+  const lastB = data.meta.letztesBackup ? new Date(data.meta.letztesBackup) : null;
+  $('#shareBody').innerHTML = `
+    <div class="sec"><div class="sec-h">Protokoll</div><div class="group">
+      <button class="row action" data-action="print" data-kind="protokoll"><span class="grow">Drucken oder als PDF sichern</span></button>
+      <button class="row action" data-action="copy-text"><span class="grow">Text für E-Mail kopieren</span></button>
+      <button class="row action" data-action="share-text"><span class="grow">Text teilen …</span></button>
+      <button class="row action" data-action="share-html" data-kind="protokoll"><span class="grow">Als Datei teilen<small>Falls der Druckdialog nicht erscheint</small></span></button>
+    </div><p class="sec-f">Als PDF: im Druckdialog auf das Teilen-Symbol tippen → „In Dateien sichern“.</p></div>
+    <div class="sec"><div class="sec-h">Maßnahmen (${c.beschluesse})</div><div class="group">
+      <button class="row action" data-action="print" data-kind="massnahmen" ${dis}><span class="grow">Maßnahmenliste drucken</span></button>
+      <button class="row action" data-action="csv" ${dis}><span class="grow">Für Excel exportieren (CSV)</span></button>
+      <button class="row action" data-action="print" data-kind="aushang" ${dis}><span class="grow">Aushang „Ihr habt gesagt – wir tun“<small>Kritik, Maßnahme, Wer, Bis wann – ohne Gesprächsnotizen</small></span></button>
+    </div></div>
+    <div class="sec"><div class="sec-h">Optionen</div><div class="group">
+      ${sw('printNotes', 'Gesprächsnotizen aufnehmen')}
+      ${sw('onlyDiscussed', 'Nur besprochene Punkte')}
+      ${sw('confidential', 'Vermerk „Vertraulich“')}
+      ${sw('approval', 'Korrekturfrist 7 Tage')}
+      <label class="row"><span class="grow">Maßnahmen im Protokoll</span><select class="inrow" data-pref="actionsPos"><option value="vorne">Vorne</option><option value="hinten">Am Ende</option><option value="keine">Keine</option></select></label>
+      <label class="row"><span class="grow">Sortierung</span><select class="inrow" data-pref="actionsSort"><option value="nr">Nach Nummer</option><option value="person">Nach Person</option><option value="frist">Nach Frist</option></select></label>
+    </div></div>
+    <div class="sec"><div class="sec-h">Backup</div><div class="group">
+      <button class="row action" data-action="backup-save"><span class="grow">Backup sichern …</span></button>
+      <button class="row action" data-action="backup-load"><span class="grow">Backup laden …</span></button>
+    </div><p class="sec-f">${lastB ? `Letztes Backup: ${esc(lastB.toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' }))}${needsBackup() ? ' – seitdem geändert.' : '.'}` : 'Noch kein Backup gesichert.'} Im Teilen-Menü „In Dateien sichern“ wählen. <button class="plain" style="min-height:0;font-size:inherit" data-action="backup-download">Oder direkt herunterladen.</button></p></div>`;
+  $$('#shareBody select[data-pref]').forEach((el) => { el.value = prefs[el.dataset.pref]; });
+}
+function renderMore() {
+  const snaps = loadSnaps();
+  const standalone = window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+  const swOk = 'serviceWorker' in navigator && !!navigator.serviceWorker.controller;
+  $('#moreBody').innerHTML = `
+    <div class="group">
+      <button class="row" data-action="open-sync"><span class="grow">iPhone &amp; iPad abgleichen</span><span class="val">${signedIn() ? 'Ein' : 'Aus'}</span>${chev()}</button>
+      <button class="row" data-action="open-meeting"><span class="grow">Kopfdaten</span>${chev()}</button>
+      <button class="row" data-action="open-import"><span class="grow">Liste importieren</span>${chev()}</button>
+      <button class="row" data-action="open-help"><span class="grow">Leitfaden für das Gespräch</span>${chev()}</button>
+    </div>
+    <div class="sec"><div class="sec-h">Darstellung</div><div class="group">
+      <div class="row"><div class="seg" data-key="theme" id="setTheme" style="flex:1" aria-label="Erscheinungsbild">${[['auto', 'Auto'], ['light', 'Hell'], ['dark', 'Dunkel']].map(([v, l]) => `<button data-action="set-theme" data-value="${v}" aria-pressed="${prefs.theme === v}">${l}</button>`).join('')}</div></div>
+      <div class="row"><span class="grow">Schriftgröße</span><button class="chip" data-action="font" data-value="-1" aria-label="Kleiner">A−</button><span id="fontPct" style="min-width:3.6em;text-align:center">${Math.round(prefs.scale * 100)} %</span><button class="chip" data-action="font" data-value="1" aria-label="Größer">A+</button></div>
+      ${sw('wake', 'Bildschirm anlassen')}
+    </div><p class="sec-f">„Bildschirm anlassen“ wirkt während der Besprechung (Home-Bildschirm-App ab iPadOS 18.4).</p></div>
+    <div class="sec"><div class="sec-h">Besprechung</div><div class="group">
+      <button class="row action" data-action="new-meeting" ${data.punkte.length ? '' : 'disabled'}><span class="grow">Folgebesprechung anlegen<small>Übernimmt alle nicht erledigten Punkte</small></span></button>
+      <button class="row action" data-action="load-sample"><span class="grow">Beispieldaten laden</span></button>
+      <button class="row danger" data-action="reset-all"><span class="grow">Alles löschen</span></button>
+    </div></div>
+    <div class="sec"><div class="sec-h">Wiederherstellen</div><div class="group">
+      ${snaps.length ? snaps.slice(0, 6).map((s, i) => `<div class="row snap-row"><span class="grow">${esc(new Date(s.t).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }))}<small>${esc(s.reason)} · ${s.data && s.data.punkte ? s.data.punkte.length : 0} Punkte</small></span><button class="plain" data-action="snap-restore" data-idx="${i}">Laden</button></div>`).join('') : '<div class="row muted">Noch keine Zwischenstände.</div>'}
+    </div><p class="sec-f">Die App sichert automatisch alle 10 Minuten und vor größeren Änderungen einen Zwischenstand – nur auf diesem Gerät.</p></div>
+    <div class="sec"><div class="sec-h">Gerät &amp; Datenschutz</div><div class="group">
+      <div class="row"><span class="grow">Offline nutzbar</span><span class="val">${swOk ? 'Ja' : 'Nach Neustart'}</span></div>
+      <div class="row"><span class="grow">Als App installiert</span><span class="val">${standalone ? 'Ja' : 'Nein (Safari-Tab)'}</span></div>
+      <div class="row" id="persistRow"><span class="grow">Speicher geschützt</span><span class="val">…</span></div>
+    </div><p class="sec-f">Alle Inhalte bleiben auf diesem Gerät. Keine Verbindung zu fremden Servern, kein Tracking. Achtung: „Verlauf und Websitedaten löschen“ in Safari oder das Löschen der App vom Home-Bildschirm löscht auch die Protokolle – deshalb regelmäßig ein Backup sichern. Version ${APP_VERSION}.</p></div>`;
+  if (navigator.storage && navigator.storage.persisted) navigator.storage.persisted().then((ok) => { const v = $('#persistRow .val'); if (v) v.textContent = ok ? 'Ja' : 'Standard'; }).catch(() => {});
+  else { const r = $('#persistRow'); if (r) r.remove(); }
+}
+
+/* ---------- Zeiterfassung, Timer, Wake Lock ---------- */
+let tracking = { id: null, since: 0 };
+function trackStart() {
+  trackStop();
+  if (prefs.view === 'focus' && meetingRunning() && document.visibilityState === 'visible' && byId(prefs.focusId)) tracking = { id: prefs.focusId, since: Date.now() };
+}
+function trackStop() {
+  if (!tracking.id) return;
+  const p = byId(tracking.id), d = Date.now() - tracking.since;
+  tracking = { id: null, since: 0 };
+  if (p && d > 1000) { p.zeitMs += d; changed(); }
+}
+function renderTimer() {
+  const el = $('#timerChip'), m = data.meeting;
+  if (!m.laeuftSeit) { el.className = 'timer'; el.innerHTML = `${ic('play')}Start`; el.setAttribute('aria-label', 'Besprechung starten'); return; }
+  if (meetingRunning()) { el.className = 'timer running'; el.innerHTML = `<i></i>${fmtClock(elapsedMs())}`; el.setAttribute('aria-label', 'Besprechung läuft – tippen zum Beenden'); return; }
+  el.className = 'timer ended'; el.innerHTML = `${fmtClock(elapsedMs())}`; el.setAttribute('aria-label', 'Besprechung beendet');
+}
+let wakeLock = null;
+async function updateWakeLock() {
+  const want = prefs.wake && meetingRunning() && document.visibilityState === 'visible';
+  try {
+    if (want && !wakeLock && 'wakeLock' in navigator) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); }
+    else if (!want && wakeLock) { await wakeLock.release(); wakeLock = null; }
+  } catch (e) { wakeLock = null; }
+}
+async function timerAction() {
+  const m = data.meeting;
+  if (!m.laeuftSeit) {
+    const now = new Date();
+    m.laeuftSeit = now.getTime(); m.beendetAm = null;
+    if (!m.datum) m.datum = isoDate(now);
+    if (!m.beginn) m.beginn = hhmm(now);
+    changed(); render(); updateWakeLock(); trackStart();
+    toast('Besprechung läuft');
+    return;
+  }
+  if (meetingRunning()) {
+    trackStop();
+    m.beendetAm = Date.now(); m.ende = hhmm(new Date());
+    changed(); updateWakeLock(); setView('summary');
+    toast('Besprechung beendet', { action: { label: 'Fortsetzen', fn: () => { m.beendetAm = null; m.ende = ''; changed(); render(); updateWakeLock(); } }, timeout: 8000 });
+    return;
+  }
+  const r = await choice({ title: 'Zeiterfassung', text: `Die Besprechung dauerte ${fmtMin(elapsedMs())}.`, choices: [{ label: 'Zurücksetzen', value: 'reset', cls: 'danger' }, { label: 'Fortsetzen', value: 'resume', cls: 'primary' }] });
+  if (r === 'resume') { m.beendetAm = null; changed(); render(); updateWakeLock(); trackStart(); }
+  if (r === 'reset') { m.laeuftSeit = null; m.beendetAm = null; changed(); render(); }
+}
+let lastMinuteFlush = Date.now();
+function tick() {
+  if (data.meeting.laeuftSeit) renderTimer();
+  if (prefs.view === 'focus') {
+    const p = byId(prefs.focusId), t = $('#ptTime'); if (p && t) t.innerHTML = ptTimeText(p);
+    const pl = $('#paceLine'); if (pl && meetingRunning() && pl.firstChild && pl.firstChild.nodeType === 3) pl.firstChild.nodeValue = paceText();
+  }
+  if (tracking.id && Date.now() - lastMinuteFlush > 60000) { lastMinuteFlush = Date.now(); const id = tracking.id; trackStop(); tracking = { id, since: Date.now() }; }
+}
+
+/* ---------- Aktionen ---------- */
+function closeSheets() { $$('dialog[open]').forEach((d) => { if (d.id !== 'dlg-choice') closeDlg(d); }); }
+function openPoint(id) {
+  if (!byId(id)) return;
+  if (returnTo === id) returnTo = null;
+  focusEdit = false;
+  trackStop();
+  prefs.focusId = id; prefs.view = 'focus'; savePrefs();
+  render(); window.scrollTo(0, 0); trackStart();
+}
+function step(dir) {
+  const p = byId(prefs.focusId); if (!p) return;
+  const n = neighbor(p, dir);
+  if (!n) { if (dir > 0) setView('summary'); return; }
+  focusEdit = false;
+  if (returnTo === n.id) returnTo = null;
+  trackStop(); prefs.focusId = n.id; savePrefs(); render(); window.scrollTo(0, 0); trackStart();
+}
+function addPoint() {
+  const from = prefs.view === 'focus' ? prefs.focusId : null;
+  const p = newPoint({ ergaenzt: !!data.meeting.laeuftSeit });
+  data.punkte.push(p); changed();
+  returnTo = from && from !== p.id ? from : null;
+  focusEdit = true;
+  if (filterActive() && !matchesFilter(p)) { prefs.fStatus = 'alle'; prefs.fKat = 'alle'; }
+  trackStop(); prefs.focusId = p.id; prefs.view = 'focus'; savePrefs();
+  render(); window.scrollTo(0, 0); trackStart();
+  const ta = $('#f-kritik'); if (ta) ta.focus();
+}
+function movePoint(id, dir, scope) {
+  const arr = data.punkte, i = arr.findIndex((p) => p.id === id); if (i < 0) return;
+  let j;
+  if (scope === 'visible') {
+    const vis = arr.filter((p) => matchesFilter(p) && matchesSearch(p));
+    const nb = vis[vis.findIndex((p) => p.id === id) + dir]; if (!nb) return;
+    j = arr.indexOf(nb);
+  } else { j = i + dir; if (j < 0 || j >= arr.length) return; }
+  const [p] = arr.splice(i, 1); arr.splice(j, 0, p);
+  changed();
+  if (prefs.view === 'overview') {
+    const before = new Map($$('#cards .pt-row').map((r) => [r.dataset.card, r.getBoundingClientRect().top]));
+    renderCards(); flipRows(before);
+    const card = $(`[data-card="${id}"]`);
+    if (card) { card.classList.add('flash'); setTimeout(() => card.classList.remove('flash'), 450); }
+  } else render();
+}
+function deletePoint(id) {
+  const p = byId(id); if (!p) return;
+  const nr = nrOf(id);
+  makeSnapshot('Vor Löschen von Punkt ' + nr);
+  const idx = data.punkte.indexOf(p), next = data.punkte[idx + 1] || data.punkte[idx - 1];
+  trackStop();
+  data.punkte.splice(idx, 1);
+  if (prefs.focusId === id) prefs.focusId = next ? next.id : null;
+  if (returnTo === id) returnTo = null;
+  focusEdit = false;
+  changed(); savePrefs(); render();
+  toast(`Punkt ${nr} gelöscht`, { action: { label: 'Widerrufen', fn: () => { data.punkte.splice(Math.min(idx, data.punkte.length), 0, p); prefs.focusId = p.id; changed(); render(); } }, timeout: 9000 });
+}
+function setPointValue(el) {
+  const p = byId(el.dataset.id); if (!p) return;
+  const key = el.dataset.key, val = el.dataset.value;
+  if (key === 'verantwortlich') {
+    p.verantwortlich = p.verantwortlich.trim().toLowerCase() === val.toLowerCase() ? '' : val;
+    const inp = $('#f-owner'); if (inp) inp.value = p.verantwortlich;
+  } else if (key === 'frist') {
+    p.frist = p.frist === val ? '' : val; const inp = $('#f-frist'); if (inp) inp.value = p.frist;
+  } else p[key] = val;
+  changed();
+  const grp = el.closest('.seg'); if (grp) { $$('button', grp).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.value === p[key]))); syncSeg(grp); }
+  if (key === 'status' && val !== 'offen') nudge($('#btnNext'));
+  refreshFocusLive(p);
+}
+function openDialog(id, trigger) {
+  const d = document.getElementById(id);
+  if (id === 'dlg-meeting') $$('[data-mfield]', d).forEach((el) => { el.value = data.meeting[el.dataset.mfield] ?? ''; });
+  if (id === 'dlg-help') $('#helpBody').innerHTML = HELP_HTML;
+  if (id === 'dlg-share') renderShare();
+  if (id === 'dlg-more') renderMore();
+  openDlg(d, trigger);
+  growAll(d); syncSegs(d);
+}
+function choice({ title, text, html, choices }) {
+  return new Promise((resolve) => {
+    const d = $('#dlg-choice');
+    $('#dc-t').textContent = title;
+    $('#dcBody').innerHTML = html || `<p>${esc(text || '')}</p>`;
+    const cls = (c) => (/danger/.test(c || '') ? 'danger' : /primary/.test(c || '') ? 'primary' : '');
+    const list = choices.some((c) => c.value === null) ? choices : [{ label: 'Abbrechen', value: null }, ...choices];
+    $('#dcFoot').innerHTML = list.map((c, i) => `<button class="${cls(c.cls)}" data-ci="${i}">${esc(c.label)}</button>`).join('');
+    let result = null;
+    $('#dcFoot').onclick = (e) => { const b = e.target.closest('[data-ci]'); if (!b) return; result = list[+b.dataset.ci].value; closeDlg(d); };
+    d.addEventListener('close', () => { $('#dcFoot').onclick = null; resolve(result); }, { once: true });
+    openDlg(d);
+  });
+}
+
+/* ---------- Hinweise ---------- */
+function toast(msg, { action, timeout = 3500 } = {}) {
+  const host = $('#toasts');
+  const el = document.createElement('div'); el.className = 'toast';
+  el.innerHTML = `<span>${esc(msg)}</span>`;
+  if (action) { const b = document.createElement('button'); b.textContent = action.label; b.onclick = () => { el.remove(); action.fn(); }; el.appendChild(b); }
+  host.appendChild(el);
+  while (host.children.length > 2) host.firstChild.remove();
+  const sp = new Spring(1, (p) => { el.style.opacity = String(1 - Math.min(1, Math.max(0, p))); el.style.transform = `translate3d(0,${p * 24}px,0) scale(${1 - p * 0.04})`; }, 0.002);
+  sp.set(1); sp.to(0, { response: 0.32 });
+  setTimeout(() => sp.to(1, { response: 0.28 }, () => el.remove()), timeout); // geht den Weg zurück, den sie gekommen ist
+}
+
+/* ---------- Mitwachsende Textfelder ---------- */
+const nativeGrow = window.CSS && CSS.supports && CSS.supports('field-sizing', 'content');
+function grow(el) {
+  if (nativeGrow || el.classList.contains('scroll') || !el.offsetParent) return;
+  const y = window.scrollY;
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + (el.offsetHeight - el.clientHeight) + 'px';
+  if (window.scrollY !== y) window.scrollTo(0, y);
+}
+function growAll(root) { if (!root) return; $$('textarea', root).forEach(grow); }
+if (nativeGrow) { const s = document.createElement('style'); s.textContent = 'textarea:not(.scroll){field-sizing:content}'; document.head.appendChild(s); }
+
+/* ---------- Listen-Import (Parser) ---------- */
+const KAT_KEYWORDS = {
+  'Teile und Garantie': [['garantie', 3], ['gewaehrleist', 3], ['kulanz', 3], ['ersatzteil', 3], ['teile', 2], ['bestell', 2], ['lager', 2], ['lieferant', 2], ['ruecksend', 2], ['retoure', 2], ['zubehoer', 1], ['hersteller', 1], ['reklamation', 1]],
+  'Dokumentation': [['dokument', 3], ['foto', 2], ['bericht', 2], ['checkliste', 2], ['protokoll', 2], ['nachweis', 2], ['formular', 2], ['erfass', 2], ['eintrag', 2], ['arbeitskarte', 2], ['ablage', 2], ['unterschrift', 1], ['notiz', 1], ['akte', 1], ['pflichtfeld', 2], ['auftragsinfo', 2]],
+  'Organisation und Planung': [['planung', 3], ['werkstattplan', 3], ['kapazitaet', 3], ['auslastung', 3], ['organis', 3], ['ablauf', 2], ['prozess', 2], ['termin', 1], ['stellpl', 2], ['hofplan', 2], ['rangier', 2], ['puffer', 2], ['priorisier', 2], ['wartezeit', 2], ['koordin', 2], ['zwischenauftr', 2], ['werkzeug', 1], ['saison', 1]],
+  'Personal und Ausbildung': [['personal', 3], ['schulung', 3], ['ausbildung', 3], ['azubi', 3], ['lehrling', 3], ['weiterbildung', 3], ['einarbeit', 3], ['freistell', 2], ['urlaub', 2], ['ueberstunde', 2], ['krank', 2], ['qualifi', 2], ['kollege', 1], ['mitarbeiter', 1], ['pate', 1], ['pausenraum', 1]],
+  'Kommunikation': [['kommunik', 3], ['absprache', 3], ['informier', 2], ['rueckmeld', 2], ['feedback', 2], ['bescheid', 2], ['abstimm', 2], ['weitergeb', 2], ['zusag', 1], ['telefon', 1], ['mail', 1], ['verkauf', 1], ['info', 1]],
+  'Neuwagenannahme': [['neuwagen', 4], ['neufahrzeug', 4], ['transportschaden', 4], ['pdi', 4], ['anliefer', 3], ['auslieferung', 3], ['eingangskontroll', 3], ['eingangscheck', 3], ['uebergabe', 2], ['lieferschein', 2]],
+};
+function guessKategorie(text) {
+  const t = norm(text); let best = null, bestScore = 0;
+  for (const [k, words] of Object.entries(KAT_KEYWORDS)) {
+    let s = 0; for (const [w, g] of words) if (t.includes(w)) s += g;
+    if (s > bestScore) { best = k; bestScore = s; }
+  }
+  return best;
+}
+const RE_LINE_LABEL = /^(kritik(?:punkt)?|problem|l(?:ö|oe|o)sung(?:svorschlag)?|vorschlag|offen(?:e\s+fragen?|e\s+punkte?)?|zu\s+kl(?:ä|ae)ren|kategorie|herkunft|quelle|priorit(?:ä|ae|a)t|prio)\s*:\s*/i;
+const RE_INLINE = /(^|[\s.;,!?)\]–-])(L(?:ö|oe|o)sung(?:svorschlag)?|Offen(?:e\s+Fragen?)?)\s*:\s*/g;
+const RE_KRITIK = /^(kritik(?:punkt)?|problem)\s*:/i;
+const RE_NUM = /^(?:(?:punkt|nr\.?)\s*)?(\d{1,3})\s*[.):](?:\s+|$|(?=[A-Za-zÄÖÜäöü]))(.*)$/i;
+function labelKey(l) {
+  const n = norm(l);
+  if (/^(kritik|problem)/.test(n)) return 'kritik';
+  if (/^(loesung|losung|vorschlag)/.test(n)) return 'loesung';
+  if (/^(offen|zu\s+klaeren)/.test(n)) return 'offen';
+  if (/^kategorie/.test(n)) return 'kategorie';
+  if (/^(herkunft|quelle)/.test(n)) return 'herkunft';
+  return 'prioritaet';
+}
+function splitSegments(line) {
+  const segs = []; let key = null, rest = line;
+  const ms = RE_LINE_LABEL.exec(rest);
+  if (ms) { key = labelKey(ms[1]); rest = rest.slice(ms[0].length); }
+  if (key === 'kategorie' || key === 'herkunft' || key === 'prioritaet') return [{ key, text: rest }];
+  const re = new RegExp(RE_INLINE.source, 'g'); let m, last = 0;
+  while ((m = re.exec(rest))) {
+    const at = m.index + m[1].length;
+    segs.push({ key, text: rest.slice(last, at) });
+    key = labelKey(m[2]); last = m.index + m[0].length;
+  }
+  segs.push({ key, text: rest.slice(last) });
+  return segs;
+}
+function parseList(text, opts = {}) {
+  const res = { items: [], warnings: [] };
+  const t = String(text || '').replace(/\r\n?/g, '\n').replace(/[   ]/g, ' ').replace(/[​﻿]/g, '').replace(/\*\*|__/g, '');
+  const lines = t.split('\n');
+  const clean = (l) => l.trim().replace(/^#+\s*/, '').replace(/^>\s*/, '');
+  const unbullet = (l) => l.replace(/^[-–•*·]\s+/, '');
+  const labelMode = lines.some((l) => { const u = unbullet(clean(l)); const n = RE_NUM.exec(u); return RE_KRITIK.test(n ? n[2].trim() : u); });
+  let cur = null, field = 'kritik', ignored = 0;
+  const finish = () => {
+    if (!cur) return;
+    for (const k of ['kritik', 'loesung', 'offen']) cur[k] = cur[k].split('\n').map((x) => x.trimEnd()).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    if (cur.kritik || cur.loesung || cur.offen) res.items.push(cur);
+    cur = null;
+  };
+  const start = (nr) => { finish(); cur = { urspNr: nr ?? null, kritik: '', loesung: '', offen: '', katRaw: '', herRaw: '', prioRaw: '' }; field = 'kritik'; };
+  const add = (k, txt) => { cur[k] = cur[k] ? cur[k] + '\n' + txt : txt; };
+  const segments = (text) => {
+    for (const s of splitSegments(text)) {
+      const tx = s.text.trim();
+      if (s.key === 'kritik') {
+        if (!cur || cur.kritik || cur.loesung || cur.offen) start(null);
+        field = 'kritik'; if (tx) add('kritik', tx); continue;
+      }
+      if (s.key === 'kategorie' || s.key === 'herkunft' || s.key === 'prioritaet') {
+        if (!cur) { if (tx) ignored++; continue; }
+        if (s.key === 'kategorie') cur.katRaw = tx; else if (s.key === 'herkunft') cur.herRaw = tx; else cur.prioRaw = tx;
+        continue;
+      }
+      if (s.key) { if (!cur) start(null); field = s.key; if (tx) add(field, tx); continue; }
+      if (!tx) continue;
+      if (!cur) { if (labelMode) { ignored++; continue; } start(null); }
+      add(field, tx);
+    }
+  };
+  for (let i = 0; i < lines.length; i++) {
+    const line = clean(lines[i]);
+    if (!line) { if (cur && cur[field]) cur[field] += '\n'; continue; }
+    const ub = unbullet(line);
+    const num = RE_NUM.exec(ub);
+    if (num) {
+      const rest = num[2].trim();
+      let isItem;
+      if (!labelMode) isItem = true;
+      else if (RE_KRITIK.test(rest)) isItem = true;
+      else if (!rest) { let j = i + 1; while (j < lines.length && !clean(lines[j])) j++; isItem = j < lines.length && RE_KRITIK.test(unbullet(clean(lines[j]))); }
+      else isItem = false;
+      if (isItem) { start(+num[1]); if (rest) segments(rest); continue; }
+    }
+    segments(RE_LINE_LABEL.test(ub) ? ub : line);
+  }
+  finish();
+  res.items.forEach((it, i) => {
+    let kat = it.katRaw ? matchKategorie(it.katRaw) : null; it.katAuto = false;
+    if (!kat && opts.autoKat) { kat = guessKategorie(it.kritik + ' ' + it.loesung + ' ' + it.offen); it.katAuto = !!kat; }
+    it.kategorie = kat || 'Sonstiges';
+    it.herkunft = normHerkunft(it.herRaw) || opts.herkunft || 'Werkstatt';
+    it.prioritaet = normPrio(it.prioRaw) || 'mittel';
+    it.warn = [];
+    if (!it.kritik) it.warn.push('Keine Kritik erkannt');
+    if (!it.loesung) it.warn.push('Kein Lösungsvorschlag erkannt');
+    if (it.urspNr == null) it.urspNr = null;
+    it.idx = i;
+  });
+  const nums = res.items.map((x) => x.urspNr).filter((x) => x != null);
+  if (nums.length > 1) {
+    const missing = []; const set = new Set(nums);
+    for (let n = Math.min(...nums); n <= Math.max(...nums); n++) if (!set.has(n)) missing.push(n);
+    if (missing.length) res.warnings.push(`Nummer ${missing.join(', ')} fehlt – evtl. Formatfehler (fehlt dort „Kritik:“?).`);
+    const dup = nums.filter((n, i) => nums.indexOf(n) !== i); if (dup.length) res.warnings.push(`Nummer ${[...new Set(dup)].join(', ')} kommt doppelt vor.`);
+  }
+  if (ignored) res.warnings.push('Text vor dem ersten Punkt wurde ignoriert.');
+  return res;
+}
+
+/* ---------- Export: Text, CSV, Druck ---------- */
+function timeRange() { const m = data.meeting; return m.beginn ? m.beginn + (m.ende ? '–' + m.ende : '') + ' Uhr' : ''; }
+function statsLine() { const c = counts(); return `${c.total} Punkte · ${c.durch} besprochen/erledigt · ${c.vertagt} vertagt · ${c.offen} offen · ${c.beschluesse} Maßnahmen`; }
+function printPoints() { return data.punkte.map((p, i) => ({ p, nr: i + 1 })).filter((x) => !prefs.onlyDiscussed || x.p.status !== 'offen'); }
+function approvalText() {
+  const m = data.meeting; const until = addDays(m.datum || isoDate(new Date()), 7);
+  return `Korrekturen oder Ergänzungen bitte bis ${fmtDate(until)}${m.protokoll ? ' an ' + m.protokoll : ''}. Danach gilt das Protokoll als abgestimmt.`;
+}
+function indent(s) { return String(s || '').trim().replace(/\n/g, '\n   '); }
+function buildText() {
+  const m = data.meeting, L = [], line = '────────────────────────────';
+  L.push('PROTOKOLL: ' + (m.titel || 'Besprechung'));
+  const when = [m.datum ? fmtDate(m.datum) : '', timeRange()].filter(Boolean).join(', ');
+  if (when) L.push('Datum: ' + when);
+  if (m.ort) L.push('Ort: ' + m.ort);
+  if (m.teilnehmer.trim()) L.push('Teilnehmer: ' + names(m.teilnehmer).join(', '));
+  if (m.protokoll) L.push('Protokoll: ' + m.protokoll);
+  if (prefs.confidential) L.push('Vertraulich – nur für den Teilnehmerkreis.');
+  L.push('', 'ERGEBNIS IN KÜRZE', statsLine());
+  if (m.naechsterTermin) L.push('Nächster Termin (Nachverfolgung): ' + fmtDate(m.naechsterTermin));
+  const acts = actions();
+  if (acts.length) {
+    L.push('', 'MASSNAHMEN – WER · WAS · BIS WANN');
+    acts.forEach(({ p, nr }) => L.push(`• ${p.verantwortlich.trim() || 'N. N.'}: ${oneLine(p.beschluss)}${p.frist ? ' – bis ' + fmtDate(p.frist) : ''} (Punkt ${nr})`));
+  }
+  const vert = data.punkte.map((p, i) => ({ p, nr: i + 1 })).filter((x) => x.p.status === 'vertagt');
+  if (vert.length) { L.push('', 'VERTAGT (kommt beim Folgetermin wieder auf den Tisch)'); vert.forEach(({ p, nr }) => L.push(`• Punkt ${nr}: ${oneLine(p.kritik)}`)); }
+  L.push('', 'DETAILS ZU DEN PUNKTEN', line);
+  printPoints().forEach(({ p, nr }) => {
+    L.push(`${nr}. ${p.kategorie} · ${p.herkunft} · Priorität ${PRIO_LABEL[p.prioritaet].toLowerCase()} · ${STATUS_LABEL[p.status]}${p.ergaenzt ? ' · im Gespräch ergänzt' : ''}`);
+    L.push('Kritik: ' + indent(p.kritik));
+    if (p.loesung.trim()) L.push('Lösungsvorschlag: ' + indent(p.loesung));
+    if (p.offen.trim()) L.push('   ► Offen: ' + indent(p.offen));
+    if (prefs.printNotes && p.notizen.trim()) L.push('Notizen: ' + indent(p.notizen));
+    if (p.beschluss.trim()) L.push('BESCHLUSS: ' + indent(p.beschluss));
+    if (p.kriterium.trim()) L.push('Erledigt, wenn: ' + indent(p.kriterium));
+    if (p.verantwortlich.trim() || p.frist) L.push(`Verantwortlich: ${p.verantwortlich.trim() || '–'} · Frist: ${p.frist ? fmtDate(p.frist) : '–'}`);
+    L.push(line);
+  });
+  if (m.notizen.trim()) L.push('', 'ALLGEMEINE NOTIZEN', m.notizen.trim());
+  if (prefs.approval) L.push('', approvalText());
+  return L.join('\n');
+}
+function csvCell(v) {
+  let s = String(v ?? '');
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; // verhindert, dass Excel Text als Formel ausführt
+  return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function buildCSV() {
+  const m = data.meeting;
+  const head = ['Nr', 'Kategorie', 'Herkunft', 'Kritik', 'Beschluss / Maßnahme', 'Erledigt, wenn', 'Verantwortlich', 'Frist', 'Priorität', 'Status', 'Besprechung', 'Besprechung vom'];
+  const rows = actions().map(({ p, nr }) => [nr, p.kategorie, p.herkunft, p.kritik, p.beschluss, p.kriterium, p.verantwortlich, fmtDE(p.frist), PRIO_LABEL[p.prioritaet], STATUS_LABEL[p.status], m.titel, fmtDE(m.datum)]);
+  return '﻿' + [head, ...rows].map((r) => r.map(csvCell).join(';')).join('\r\n') + '\r\n';
+}
+const pv = (s) => esc(String(s || '').trim());
+function prHeader(kind) {
+  const m = data.meeting;
+  const rows = [['Datum', [m.datum ? fmtDate(m.datum) : '', timeRange()].filter(Boolean).join(', ')], ['Ort', m.ort], ['Teilnehmer', names(m.teilnehmer).join(', ')], ['Protokoll', m.protokoll], ['Nächster Termin', m.naechsterTermin ? fmtDate(m.naechsterTermin) : '']].filter((r) => r[1]);
+  return `<div class="pr-kicker">${esc(kind)}${prefs.confidential ? ' · Vertraulich – nur für den Teilnehmerkreis' : ''}</div>
+    <h1>${pv(m.titel) || 'Besprechung'}</h1>
+    ${rows.length ? `<dl class="pr-meta">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` : ''}`;
+}
+function prActionsTable(acts, aushang) {
+  if (!acts.length) return '<p class="pr-muted">Keine Maßnahmen beschlossen.</p>';
+  if (aushang) {
+    return `<table class="pr-table"><thead><tr><th style="width:7mm">Nr.</th><th>Ihr habt gesagt …</th><th>Wir tun …</th><th style="width:30mm">Wer</th><th style="width:22mm">Bis wann</th><th style="width:18mm">Stand</th></tr></thead><tbody>
+      ${acts.map(({ p, nr }) => `<tr><td>${nr}</td><td>${pv(p.kritik)}</td><td><strong>${pv(p.beschluss)}</strong></td><td>${pv(p.verantwortlich) || '–'}</td><td class="nw">${p.frist ? esc(fmtDE(p.frist)) : '–'}</td><td class="nw">${STATUS_LABEL[p.status]}</td></tr>`).join('')}</tbody></table>`;
+  }
+  return `<table class="pr-table"><thead><tr><th style="width:7mm">Nr.</th><th>Maßnahme</th><th style="width:32mm">Verantwortlich</th><th style="width:21mm">Frist</th><th style="width:14mm">Prio</th><th style="width:22mm">Status</th></tr></thead><tbody>
+    ${acts.map(({ p, nr }) => `<tr><td>${nr}</td><td><strong>${pv(p.beschluss)}</strong>${p.kriterium.trim() ? `<span class="ref">Erledigt, wenn: ${pv(p.kriterium)}</span>` : ''}<span class="ref">zu: ${esc(oneLine(p.kritik).slice(0, 140))}${oneLine(p.kritik).length > 140 ? ' …' : ''}</span></td><td>${pv(p.verantwortlich) || '–'}</td><td class="nw">${p.frist ? esc(fmtDE(p.frist)) : '–'}</td><td class="nw">${PRIO_LABEL[p.prioritaet]}</td><td class="nw">${STATUS_LABEL[p.status]}</td></tr>`).join('')}</tbody></table>`;
+}
+function prFoot() { return `<div class="pr-foot">Stand: ${esc(new Date().toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' }))}</div>`; }
+function buildPrint(kind) {
+  const m = data.meeting, acts = actions();
+  if (kind === 'massnahmen') return `<div class="pr-doc">${prHeader('Maßnahmenliste')}<div class="pr-summary">${acts.length} Maßnahmen aus ${data.punkte.length} Punkten</div>${prActionsTable(acts)}${prFoot()}</div>`;
+  if (kind === 'aushang') return `<div class="pr-doc"><div class="pr-kicker">Ergebnisse unserer Runde</div><h1>Ihr habt gesagt – wir tun</h1><div class="pr-summary">${m.datum ? 'Besprechung vom ' + esc(fmtDate(m.datum)) + ' · ' : ''}${acts.length} Maßnahmen${m.naechsterTermin ? ' · Nächster Zwischenstand: ' + esc(fmtDate(m.naechsterTermin)) : ''}</div>${prActionsTable(acts, true)}${prFoot()}</div>`;
+  const pts = printPoints();
+  const tbl = `<h2 class="pr-h2">Maßnahmen (Wer – Was – Bis wann)</h2>${prActionsTable(acts)}`;
+  return `<div class="pr-doc">${prHeader('Besprechungsprotokoll')}
+    <div class="pr-summary"><strong>Ergebnis in Kürze:</strong> ${esc(statsLine())}</div>
+    ${prefs.actionsPos === 'vorne' ? tbl : ''}
+    <h2 class="pr-h2">Punkte im Einzelnen</h2>
+    ${pts.map(({ p, nr }) => `<div class="pr-point">
+      <div class="pr-ph"><span class="pr-nr">${nr}.</span><span class="pr-ptags">${esc(p.kategorie)} · ${esc(p.herkunft)} · Priorität ${PRIO_LABEL[p.prioritaet].toLowerCase()}${p.ergaenzt ? ' · im Gespräch ergänzt' : ''}</span><span class="pr-st">${STATUS_LABEL[p.status]}</span></div>
+      <div class="pr-f pr-kritik"><div class="pr-l">Kritik</div><div class="pr-v">${pv(p.kritik) || '–'}</div></div>
+      ${p.loesung.trim() || p.offen.trim() ? `<div class="pr-f"><div class="pr-l">Lösungs&shy;vorschlag</div><div class="pr-v">${pv(p.loesung)}${p.offen.trim() ? `<div class="pr-offen"><b>Offen:</b> ${pv(p.offen)}</div>` : ''}</div></div>` : ''}
+      ${prefs.printNotes && p.notizen.trim() ? `<div class="pr-f"><div class="pr-l">Notizen</div><div class="pr-v">${pv(p.notizen)}</div></div>` : ''}
+      ${p.beschluss.trim() ? `<div class="pr-f pr-beschluss"><div class="pr-l">Beschluss</div><div class="pr-v">${pv(p.beschluss)}${p.kriterium.trim() ? `<div class="pr-who">Erledigt, wenn: ${pv(p.kriterium)}</div>` : ''}<div class="pr-who"><b>Verantwortlich:</b> ${pv(p.verantwortlich) || '–'} · <b>Frist:</b> ${p.frist ? esc(fmtDate(p.frist)) : '–'}</div></div></div>` : ''}
+    </div>`).join('')}
+    ${prefs.actionsPos === 'hinten' ? tbl : ''}
+    ${m.notizen.trim() ? `<h2 class="pr-h2">Allgemeine Notizen</h2><div class="pr-v">${pv(m.notizen)}</div>` : ''}
+    ${prefs.approval ? `<div class="pr-note">${esc(approvalText())}</div>` : ''}
+    ${prFoot()}</div>`;
+}
+function fileStem(kind) {
+  const m = data.meeting; const d = m.datum || isoDate(new Date());
+  const t = (m.titel || '').replace(/[^\wäöüÄÖÜß-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40);
+  return `${kind}_${d}${t ? '_' + t : ''}`;
+}
+function doPrint(kind) {
+  flushSave();
+  $('#print').innerHTML = buildPrint(kind);
+  const old = document.title;
+  document.title = fileStem(kind === 'protokoll' ? 'Protokoll' : kind === 'aushang' ? 'Aushang' : 'Massnahmen');
+  const restore = () => { document.title = old; window.removeEventListener('afterprint', restore); };
+  window.addEventListener('afterprint', restore);
+  setTimeout(restore, 60000);
+  window.print();
+}
+function standaloneHTML(kind) {
+  const css = $$('style').map((s) => s.textContent).join('\n');
+  return `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(fileStem(kind))}</title><style>${css}\nbody{background:#fff;color:#000;padding:24px}#print{display:block}@media print{body{padding:0}}</style></head><body><div id="print">${buildPrint(kind)}</div></body></html>`;
+}
+
+/* ---------- Dateien ausgeben (Teilen-Menü bevorzugt, sonst Download) ---------- */
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename; a.rel = 'noopener';
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 5000);
+}
+async function deliverFile(content, filename, mime, { share = true } = {}) {
+  const blob = new Blob([content], { type: mime });
+  if (share && navigator.share && navigator.canShare) {
+    const variants = [mime, 'text/plain'];
+    for (const type of variants) {
+      let file; try { file = new File([content], filename, { type }); } catch (e) { break; }
+      if (!navigator.canShare({ files: [file] })) continue;
+      try { await navigator.share({ files: [file] }); return 'shared'; }
+      catch (e) { if (e && e.name === 'AbortError') return 'aborted'; break; }
+    }
+  }
+  downloadBlob(blob, filename);
+  return 'downloaded';
+}
+function backupJSON() {
+  const out = JSON.parse(JSON.stringify(data));
+  out.exportiertAm = new Date().toISOString();
+  out.hinweis = 'Backup der Besprechungsprotokoll-App. Enthält ggf. personenbezogene Daten – vertraulich aufbewahren.';
+  return JSON.stringify(out, null, 2);
+}
+function markBackup(r) {
+  if (r === 'aborted') return;
+  data.meta.letztesBackup = new Date().toISOString();
+  changed(); flushSave();
+  toast(r === 'shared' ? 'Backup übergeben – z. B. „In Dateien sichern“ gewählt?' : 'Backup heruntergeladen (Ordner „Downloads“).', { timeout: 6000 });
+  render(); if ($('#dlg-share').open) renderShare();
+}
+async function backupSave(share = true) {
+  flushSave();
+  const name = `Protokoll-Backup_${fileStem('').replace(/^_/, '')}_${hhmm(new Date()).replace(':', '')}.json`;
+  markBackup(await deliverFile(backupJSON(), name, 'application/json', { share }));
+}
+function readJSONText(text) {
+  let raw;
+  try { raw = JSON.parse(text); } catch (e) { throw new Error('Die Datei ist kein gültiges JSON.'); }
+  return normalizeData(raw);
+}
+async function confirmRestore(d, label) {
+  const exp = d.exportiertAm || null;
+  const html = `<p><strong>${esc(d.meeting.titel || 'Besprechung ohne Titel')}</strong>${d.meeting.datum ? ' · ' + esc(fmtDate(d.meeting.datum)) : ''}<br>${d.punkte.length} Punkte</p>
+    <p class="muted" style="margin-top:10px">Die aktuellen Daten auf diesem Gerät (${data.punkte.length} Punkte) werden ersetzt. Vorher wird automatisch ein Wiederherstellungspunkt angelegt.</p>`;
+  const r = await choice({ title: label, html, choices: [{ label: 'Abbrechen', value: null }, { label: 'Daten ersetzen', value: 'ok', cls: 'btn-primary' }] });
+  if (r !== 'ok') return false;
+  makeSnapshot('Vor Backup-Import');
+  trackStop();
+  d.id = uid(); // eine bewusst geladene Fassung ersetzt beim Abgleich die bisherige
+  data = d; prefs.focusId = null; prefs.fStatus = 'alle'; prefs.fKat = 'alle'; savePrefs();
+  dirty = true; flushSave(); render(); void exp;
+  toast('Backup geladen.');
+  return true;
+}
+
+/* ---------- Beispieldaten (frei erfunden) ---------- */
+const SAMPLE_LIST = `1. Kritik: Garantieanträge bleiben oft wochenlang liegen, weil unklar ist, wer sie beim Hersteller einreicht.
+Lösung: Feste Zuständigkeit im Teiledienst, jeden Montag Liste der offenen Anträge. Offen: Wer vertritt im Urlaub?
+2. Kritik: Bestellte Ersatzteile werden nicht dem Auftrag zugeordnet, Fahrzeuge stehen dadurch länger.
+Lösung: Teile bei Wareneingang mit Auftragsnummer etikettieren und sofort im System verbuchen.
+3. Kritik: Arbeitsaufträge enthalten zu wenig Infos zum Kundenwunsch.
+Lösung: Pflichtfelder in der Auftragsannahme und eine kurze Checkliste für die Annahme.
+Offen: Welche Felder sind wirklich Pflicht?
+4. Kritik: Fotos von Schäden werden nicht einheitlich abgelegt.
+Lösung: Fotodokumentation mit dem Tablet direkt im Auftrag.
+5. Kritik: Die Werkstattplanung wird ständig durch Zwischenaufträge umgeworfen.
+Lösung: Täglich fester Puffer von zwei Stunden für Notfälle, der Rest wird verbindlich geplant.
+6. Kritik: In der Saison zu wenig Stellplätze auf dem Hof, viel Rangieren.
+Lösung: Hofplan mit festen Zonen (Annahme / wartet auf Teile / fertig).
+7. Kritik: Neue Kollegen werden kaum eingearbeitet.
+Lösung: Einarbeitungsplan mit Paten für die ersten vier Wochen.
+8. Kritik: Herstellerschulungen werden selten besucht, weil niemand freigestellt wird.
+Lösung: Jahresplan für Schulungen, Termine früh blocken. Offen: Budget pro Jahr?
+9. Kritik: Der Verkauf sagt Kunden Termine zu, ohne mit der Werkstatt zu sprechen.
+Lösung: Terminzusagen nur nach Blick in den Werkstattplaner, kurze Absprache per Telefon.
+10. Kritik: Rückmeldungen an Kunden zum Reparaturstand kommen zu spät.
+Lösung: Bei Verzögerungen feste Rückmeldung bis 15 Uhr am selben Tag.
+11. Kritik: Neufahrzeuge werden bei Anlieferung nicht vollständig geprüft, Transportschäden fallen erst bei der Übergabe auf.
+Lösung: Eingangscheck mit Fotos innerhalb von 24 Stunden nach Anlieferung. Offen: Wer unterschreibt den Lieferschein?
+12. Kritik: Übergabetermine für Neufahrzeuge sind zu knapp geplant.
+Lösung: Mindestens drei Werktage zwischen Anlieferung und Übergabe.
+13. Kritik: Werkzeug und Messgeräte fehlen oder sind defekt.
+Lösung: Werkzeugliste, monatliche Prüfung und ein festes Budget für Ersatz.
+14. Kritik: Pausenraum ist in schlechtem Zustand.
+Lösung: Kleine Renovierung und ein Putzplan.`;
+function sampleData() {
+  const d = emptyData();
+  const t = new Date(); const mon = new Date(t); mon.setDate(t.getDate() + ((8 - t.getDay()) % 7 || 7));
+  Object.assign(d.meeting, { titel: 'Werkstatt-Runde (Beispiel)', datum: isoDate(mon), ort: 'Gasthaus Zur Linde (Beispiel)', teilnehmer: 'Anna Beispiel, Ben Muster, Carla Probe', protokoll: 'Daniel Demo', beginn: '18:30', dauerGeplant: '120' });
+  d.punkte = parseList(SAMPLE_LIST, { autoKat: true, herkunft: 'Werkstatt' }).items.map((it) => newPoint({ urspNr: it.urspNr, kategorie: it.kategorie, herkunft: it.herkunft, kritik: it.kritik, loesung: it.loesung, offen: it.offen }));
+  const base = d.meeting.datum;
+  Object.assign(d.punkte[0], { status: 'besprochen', prioritaet: 'hoch', notizen: 'Rückstau aktuell ca. 15 Anträge. Teiledienst sieht Kapazität, wenn Annahme die Unterlagen vollständig liefert.', beschluss: 'Teiledienst reicht Garantieanträge ein; jeden Montag Liste der offenen Anträge an die GF.', kriterium: 'Kein Antrag älter als 14 Tage', verantwortlich: 'Carla Probe', frist: addDays(base, 14) });
+  Object.assign(d.punkte[1], { status: 'besprochen', notizen: 'Etikettendrucker ist vorhanden, wird nur nicht genutzt.', beschluss: 'Wareneingang etikettiert jedes Teil mit Auftragsnummer.', verantwortlich: 'Ben Muster', frist: addDays(base, 7) });
+  Object.assign(d.punkte[2], { status: 'vertagt', notizen: 'Erst mit Serviceannahme abstimmen.' });
+  d.punkte.splice(5, 0, newPoint({ kritik: 'Ersatzteil-Rücksendungen stapeln sich im Lager.', kategorie: 'Teile und Garantie', ergaenzt: true, status: 'besprochen', beschluss: 'Rücksendungen jeden Freitag gesammelt abwickeln.', verantwortlich: '' }));
+  return d;
+}
+
+/* ---------- Leitfaden-Inhalt ---------- */
+const HELP_HTML = `
+<h3>So läuft's mit der App</h3>
+<ol>
+  <li><strong>Vorher:</strong> Liste über <em>„…“ → Liste importieren</em> einfügen, Vorschau prüfen, übernehmen. Kopfdaten (Teilnehmer!) eintragen. Backup sichern. Einmal im Flugmodus testen.</li>
+  <li><strong>Im Gespräch:</strong> Oben rechts auf <em>Start</em> tippen. Im <em>Fokus</em> jeden Punkt groß durchgehen: Notizen, Beschluss, Verantwortlich (Namen antippen), Frist (Schnellwahl), Status. Dann <em>Weiter</em>.</li>
+  <li><strong>Spontanes Thema?</strong> Oben auf <em>+</em> tippen – danach bringt dich „Zurück zu Punkt …“ wieder an die alte Stelle.</li>
+  <li><strong>Zum Schluss:</strong> Timer beenden → <em>Abschluss</em>: Lücken-Check, Maßnahmen gemeinsam vorlesen, Folgetermin festlegen.</li>
+  <li><strong>Danach:</strong> Über das Teilen-Symbol: Backup sichern, Protokoll als PDF oder Text verschicken, Maßnahmen als CSV nach Excel.</li>
+</ol>
+<p class="muted small">Tastatur (falls angeschlossen): ⌘ + Enter = nächster Punkt, Pfeiltasten links/rechts außerhalb von Textfeldern.</p>
+
+<h3>Wie Profis solche Runden führen</h3>
+<ol>
+  <li><strong>Rahmen setzen (Einstieg, 2 Minuten):</strong> Danke sagen, Ziel nennen („Wir wollen gemeinsam besser werden“), ankündigen, dass offen mitgeschrieben wird und alle das Protokoll bekommen. Amy Edmondson (Harvard) nennt das „Rahmen setzen“ – die Grundlage psychologischer Sicherheit, die Googles Studie „Project Aristotle“ als wichtigsten Faktor guter Teams fand.</li>
+  <li><strong>Erst zuhören, dann Vorschlag:</strong> Kritik in eigenen Worten wiederholen („Habe ich richtig verstanden …?“), nicht verteidigen. Erst danach den vorbereiteten Lösungsvorschlag zeigen und fragen: „Was fehlt, was würdet ihr anders machen?“</li>
+  <li><strong>Ergebnisprotokoll statt Mitschrift:</strong> Festhalten, <em>was beschlossen</em> wurde – nicht wer was gesagt hat. Jede Maßnahme beantwortet: <em>Was – Wer – Bis wann</em> (Haufe Akademie). Kein „so bald wie möglich“.</li>
+  <li><strong>Genau eine verantwortliche Person:</strong> Apple nennt das „DRI“ (directly responsible individual). Eine Aufgabe, die „allen“ gehört, gehört niemandem. Andere dürfen unterstützen.</li>
+  <li><strong>Frist immer – notfalls vorläufig:</strong> Ein vorläufiges Datum ist eine Zusage, die man neu verhandeln kann; gar kein Datum heißt, es passiert nichts.</li>
+  <li><strong>„Erledigt, wenn …“:</strong> Lean-Praktiker legen fest, woran man merkt, dass eine Maßnahme <em>wirkt</em> (der „Check“ im PDCA-Kreis) – dieser Schritt wird laut Praxisliteratur am häufigsten vergessen.</li>
+  <li><strong>Zeitbox &amp; Themenspeicher:</strong> Geplante Dauer eintragen – die App zeigt, wie viel Zeit je offenem Punkt bleibt. Was ausufert oder Abstimmung mit anderen braucht: <em>vertagt</em> setzen. Der Themenspeicher darf kein Abstellgleis sein – jeder vertagte Punkt bekommt einen Termin.</li>
+  <li><strong>Erst offen streiten, dann gemeinsam umsetzen:</strong> Einwände ausdrücklich einladen; ist entschieden, tragen alle mit („Disagree and commit“, Amazon-Leitprinzip).</li>
+  <li><strong>Gemeinsamer Abschluss:</strong> Die letzten Minuten für das Vorlesen der Maßnahmen reservieren (Steven Rogelberg, „The Surprising Science of Meetings“). Jeder bestätigt seine Aufgaben laut – dafür gibt es den Vorlese-Modus im <em>Abschluss</em>.</li>
+  <li><strong>Schnell verschicken:</strong> Protokoll möglichst innerhalb von 24 Stunden an alle; optional mit Korrekturfrist („Einwände bis …“).</li>
+  <li><strong>Den Kreis schließen:</strong> Laut Gallup stimmen nur 8 % der Beschäftigten voll zu, dass ihr Unternehmen auf ihre Rückmeldungen reagiert; Teams mit schwacher Maßnahmenplanung verloren an Engagement. Deshalb: Folgetermin festlegen, Fortschritt sichtbar machen – z. B. mit dem Aushang „Ihr habt gesagt – wir tun“.</li>
+  <li><strong>Nicht alles auf einmal:</strong> Lieber wenige Maßnahmen wirklich umsetzen als viele anfangen. Schnelle, sichtbare Erfolge („Quick Wins“: großer Nutzen, wenig Aufwand) zuerst.</li>
+</ol>
+<p class="src">Quellen u. a.: Haufe Akademie (Ergebnisprotokoll), Google re:Work (Project Aristotle), A. Edmondson / Training Industry (psychologische Sicherheit), WEF über Apples DRI, ITPro Today über S. Rogelberg, AllAboutLean (Shopfloor-Management), Gallup („Action Plans Propel Engagement“), Open Practice Library (Parking Lot).</p>
+
+<h3>Datenschutz &amp; Sicherheit</h3>
+<ul>
+  <li>Alle Inhalte bleiben auf diesem Gerät (localStorage). Die App baut keine Verbindung zu fremden Servern auf, es gibt kein Tracking.</li>
+  <li>Safari-Tab und Home-Bildschirm-App haben getrennte Speicher. Nutze immer dieselbe.</li>
+  <li>„Verlauf und Websitedaten löschen“ in Safari oder das Entfernen der App vom Home-Bildschirm löscht die Daten – deshalb nach jedem Termin ein Backup sichern und vertraulich ablegen (enthält Namen).</li>
+</ul>`;
+
+let importState = { items: [], warnings: [], herkunft: 'Werkstatt', mode: 'append' };
+function updateImportPreview() {
+  const text = $('#importText').value;
+  const host = $('#impPreview'), btn = $('#impApply'), sum = $('#impSum');
+  $('#impModeWrap').hidden = !data.punkte.length;
+  if (/^\s*\{/.test(text)) {
+    importState.items = [];
+    sum.textContent = 'Backup-Datei erkannt';
+    host.innerHTML = `<div class="group"><button class="row action" data-action="import-json-text"><span class="grow">Als Backup laden</span></button></div>`;
+    btn.disabled = true; btn.textContent = 'Übernehmen'; return;
+  }
+  const res = parseList(text, { autoKat: $('#impAuto').checked, herkunft: importState.herkunft });
+  importState.items = res.items; importState.warnings = res.warnings;
+  if (!res.items.length) {
+    sum.textContent = 'Vorschau';
+    host.innerHTML = `<p class="sec-f" style="margin-top:0">${text.trim() ? 'Noch keine Punkte erkannt. Jeder Punkt beginnt mit „1. Kritik:“, der Vorschlag mit „Lösung:“.' : 'Füge links deine Liste ein. Hier siehst du sofort, welche Punkte erkannt werden.'}</p>`;
+    btn.disabled = true; btn.textContent = 'Übernehmen'; return;
+  }
+  sum.textContent = `${res.items.length} Punkte erkannt`;
+  host.innerHTML = `${res.warnings.map((w) => `<div class="hint" style="margin:0 4px 10px">${ic('alert')}<span>${esc(w)}</span></div>`).join('')}
+    <div class="group">${res.items.map((it, i) => `<div class="imp-row"><span class="num">${it.urspNr ?? i + 1}</span><div style="min-width:0;flex:1">
+      <div class="kr">${esc(it.kritik) || '<span class="muted">Keine Kritik</span>'}</div>
+      ${it.loesung ? `<div class="lo">${esc(it.loesung)}</div>` : ''}
+      ${it.offen ? `<div class="offen-box"><b>Offen</b>${esc(it.offen)}</div>` : ''}
+      ${it.warn.map((w) => `<div class="imp-warn">${esc(w)}</div>`).join('')}
+      <div class="sel">
+        <select class="pill" data-imp="${i}" data-key="kategorie" aria-label="Kategorie">${KATEGORIEN.map((k) => `<option ${it.kategorie === k ? 'selected' : ''}>${esc(k)}</option>`).join('')}</select>
+        <select class="pill" data-imp="${i}" data-key="herkunft" aria-label="Herkunft">${HERKUNFT.map((h) => `<option ${it.herkunft === h ? 'selected' : ''}>${h}</option>`).join('')}</select>
+      </div></div></div>`).join('')}</div>
+    ${res.items.some((x) => x.katAuto) ? '<p class="sec-f">Kategorien wurden anhand von Stichworten vorgeschlagen – bitte kurz prüfen.</p>' : ''}`;
+  btn.disabled = false;
+  btn.textContent = `${res.items.length} übernehmen`;
+}
+let impRaf = 0;
+const updateImportPreviewSoon = () => { cancelAnimationFrame(impRaf); impRaf = requestAnimationFrame(updateImportPreview); };
+function importApply() {
+  const items = importState.items; if (!items.length) return;
+  const replace = data.punkte.length && importState.mode === 'replace';
+  makeSnapshot('Vor Listen-Import');
+  const pts = items.map((it) => newPoint({ urspNr: it.urspNr, kategorie: it.kategorie, herkunft: it.herkunft, prioritaet: it.prioritaet, kritik: it.kritik, loesung: it.loesung, offen: it.offen }));
+  if (replace) data.punkte = pts; else data.punkte.push(...pts);
+  prefs.fStatus = 'alle'; prefs.fKat = 'alle'; search = '';
+  if (replace || !byId(prefs.focusId)) prefs.focusId = pts[0].id;
+  changed(); flushSave(); savePrefs();
+  closeDlg($('#dlg-import'));
+  $('#importText').value = '';
+  prefs.view = 'overview'; render();
+  toast(`${pts.length} Punkte übernommen`);
+}
+function syncImportControls() {
+  $$('#impHerkunft button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.value === importState.herkunft)));
+  $$('#impMode button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.value === importState.mode)));
+  syncSeg($('#impHerkunft')); syncSeg($('#impMode'));
+}
+function renderReadback() {
+  const acts = actions(prefs.actionsSort === 'nr' ? 'person' : prefs.actionsSort);
+  const groups = new Map();
+  acts.forEach((a) => { const k = a.p.verantwortlich.trim() || 'Noch ohne Verantwortlichen'; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(a); });
+  const conf = acts.filter((a) => a.p.bestaetigt).length;
+  $('#rbCount').textContent = `${conf} von ${acts.length} bestätigt`;
+  $('#rbBody').innerHTML = acts.length ? [...groups.entries()].map(([who, list]) => `<div class="rb-group"><h3>${esc(who)}</h3><div class="group">${list.map(({ p }) => `<div class="rb-item ${p.bestaetigt ? 'confirmed' : ''}"><div class="grow" style="flex:1;min-width:0"><div class="what">${esc(p.beschluss)}</div><div class="when">${p.frist ? 'bis ' + esc(fmtDate(p.frist)) : '<span style="color:var(--orange)">Frist fehlt</span>'}</div></div><button class="${p.bestaetigt ? 'btn' : 'btn tinted'} small" data-action="rb-confirm" data-id="${p.id}">${p.bestaetigt ? ic('check') + 'Bestätigt' : 'Bestätigen'}</button></div>`).join('')}</div></div>`).join('') : '<p class="muted">Noch keine Maßnahmen.</p>';
+}
+function newFollowUp() {
+  makeSnapshot('Vor Folgebesprechung'); trackStop();
+  const old = data, d = emptyData();
+  const tag = old.meeting.datum ? fmtDE(old.meeting.datum) : 'Vortermin';
+  Object.assign(d.meeting, { titel: (old.meeting.titel || 'Besprechung').replace(/\s*–\s*Nachverfolgung$/, '') + ' – Nachverfolgung', datum: old.meeting.naechsterTermin || '', teilnehmer: old.meeting.teilnehmer, protokoll: old.meeting.protokoll, dauerGeplant: old.meeting.dauerGeplant });
+  d.punkte = old.punkte.filter((p) => p.status !== 'erledigt').map((p) => Object.assign({}, p, { status: 'offen', ergaenzt: false, bestaetigt: false, zeitMs: 0, notizen: p.notizen.trim() ? `[${tag}] ${p.notizen.trim()}\n` : '' }));
+  data = d; prefs.focusId = null; prefs.view = 'overview'; dirty = true; flushSave(); savePrefs(); render();
+  toast(`Folgebesprechung angelegt: ${d.punkte.length} Punkte übernommen`);
+}
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch (e) { /* Fallback */ }
+  const ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0'; ta.style.top = '0';
+  document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length);
+  let ok = false; try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  ta.remove(); return ok;
+}
+function measureTopbar() { document.documentElement.style.setProperty('--topbar-h', $('#topbar').offsetHeight + 'px'); }
+
+/* ---------- Ereignisse ---------- */
+const ACTIONS = {
+  view: (el) => setView(el.dataset.view),
+  'open-sync': () => openSyncSheet(),
+  'sync-status': () => { if (syncState.s === 'login') msLogin(); else if (signedIn() || syncConfigured()) openSyncSheet(); else toast(lastSavedAt ? 'Gespeichert um ' + lastSavedAt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' – nur auf diesem Gerät' : 'Alles gespeichert – nur auf diesem Gerät'); },
+  'sync-save-config': () => { const c = $('#msClient').value.trim(), t = $('#msTenant').value.trim(); if (!/^[0-9a-f-]{36}$/i.test(c) || !t) { toast('Bitte Anwendungs-ID (36 Zeichen) und Verzeichnis-ID eintragen.'); return; } sync.clientId = c; sync.tenant = t; saveSync(); msLogin(); },
+  'sync-login': () => msLogin(),
+  'sync-logout': () => { msLogout(); renderSync(); },
+  'sync-now': () => syncNow({ interactive: true }),
+  'sync-reset-config': () => { sync = {}; saveSync(); setSync('off'); renderSync(); },
+  'add-point': () => { closeSheets(); addPoint(); },
+  'open-point': (el) => openPoint(el.dataset.id),
+  step: (el) => slideTo(+el.dataset.dir),
+  move: (el) => movePoint(el.dataset.id, +el.dataset.dir, el.dataset.scope),
+  'delete-point': (el) => deletePoint(el.dataset.id),
+  set: (el) => setPointValue(el),
+  'toggle-edit': () => { focusEdit = !focusEdit; renderFocus(); growAll($('#v-focus')); },
+  'toggle-reorder': () => { reorder = !reorder; renderOverview(); },
+  'filter-status': (el) => { prefs.fStatus = el.dataset.value; savePrefs(); renderOverview(); },
+  'clear-filter': () => { prefs.fStatus = 'alle'; prefs.fKat = 'alle'; search = ''; savePrefs(); render(); },
+  'open-meeting': () => { closeSheets(); openDialog('dlg-meeting'); },
+  'focus-naechster': () => { const el = $('#sumNext'); if (el) { el.scrollIntoView({ block: 'center' }); el.focus(); } else openDialog('dlg-meeting'); },
+  'set-next': (el) => { data.meeting.naechsterTermin = el.dataset.value; changed(); renderSummary(); },
+  'close-dialog': (el) => closeDlg(el.closest('dialog')),
+  timer: () => timerAction(),
+  'open-share': (el) => openDialog('dlg-share', el),
+  'open-more': (el) => openDialog('dlg-more', el),
+  'open-import': () => { closeSheets(); importState.mode = 'append'; syncImportControls(); openDialog('dlg-import'); updateImportPreview(); },
+  'import-example': () => { $('#importText').value = SAMPLE_LIST; updateImportPreview(); },
+  'import-paste': async () => { try { const t = await navigator.clipboard.readText(); if (t) { $('#importText').value = t; updateImportPreview(); } } catch (e) { toast('Bitte ins Textfeld tippen und „Einsetzen“ wählen.'); } },
+  'imp-herkunft': (el) => { importState.herkunft = el.dataset.value; syncImportControls(); updateImportPreview(); },
+  'imp-mode': (el) => { importState.mode = el.dataset.value; syncImportControls(); },
+  'import-apply': () => importApply(),
+  'import-json-text': async () => { try { const d = readJSONText($('#importText').value); closeDlg($('#dlg-import')); if (await confirmRestore(d, 'Backup laden?')) $('#importText').value = ''; } catch (e) { toast(e.message, { timeout: 8000 }); } },
+  print: (el) => { closeSheets(); doPrint(el.dataset.kind); },
+  'share-html': async (el) => { const r = await deliverFile(standaloneHTML(el.dataset.kind), fileStem('Protokoll') + '.html', 'text/html'); if (r === 'shared') toast('Datei in „Dateien“ öffnen → Teilen → Drucken'); },
+  csv: async () => { const r = await deliverFile(buildCSV(), fileStem('Massnahmen') + '.csv', 'text/csv'); if (r === 'downloaded') toast('CSV gesichert'); },
+  'copy-text': async () => { const ok = await copyText(buildText()); toast(ok ? 'Text kopiert – jetzt in die E-Mail einfügen' : 'Kopieren nicht möglich'); },
+  'share-text': async () => { const text = buildText(); if (navigator.share) { try { await navigator.share({ title: 'Protokoll: ' + (data.meeting.titel || 'Besprechung'), text }); } catch (e) { /* abgebrochen */ } } else { const ok = await copyText(text); toast(ok ? 'Text kopiert' : 'Teilen nicht verfügbar'); } },
+  'backup-save': () => backupSave(true),
+  'backup-download': () => backupSave(false),
+  'backup-load': () => { closeSheets(); const f = $('#fileJson'); f.value = ''; f.click(); },
+  'snap-restore': async (el) => {
+    const s = loadSnaps()[+el.dataset.idx]; if (!s) return;
+    closeSheets();
+    try { await confirmRestore(normalizeData(s.data), 'Zwischenstand laden?'); } catch (e) { toast(e.message); }
+  },
+  'new-meeting': async () => {
+    closeSheets();
+    const r = await choice({ title: 'Folgebesprechung anlegen?', text: 'Alle nicht erledigten Punkte werden mit Beschluss, Verantwortlichem und Frist übernommen und auf „offen“ gesetzt. Sichere vorher ein Backup – darin bleibt diese Besprechung vollständig erhalten.', choices: [{ label: 'Erst Backup', value: 'backup' }, { label: 'Anlegen', value: 'ok', cls: 'primary' }] });
+    if (r === 'backup') { await backupSave(true); return; }
+    if (r === 'ok') newFollowUp();
+  },
+  'reset-all': async () => {
+    closeSheets();
+    const r = await choice({ title: 'Alles löschen?', text: 'Alle Punkte und Kopfdaten werden von diesem Gerät gelöscht. Ein Zwischenstand wird vorher gesichert.', choices: [{ label: 'Abbrechen', value: null }, { label: 'Alles löschen', value: 'ok', cls: 'danger' }] });
+    if (r !== 'ok') return;
+    makeSnapshot('Vor „Alles löschen“'); trackStop();
+    data = emptyData(); prefs.focusId = null; dirty = true; flushSave(); savePrefs(); render(); updateWakeLock();
+    toast('Alle Daten gelöscht');
+  },
+  'load-sample': async () => {
+    closeSheets();
+    if (data.punkte.length) { const r = await choice({ title: 'Beispieldaten laden?', text: 'Die aktuellen Daten werden ersetzt. Ein Zwischenstand wird vorher gesichert.', choices: [{ label: 'Abbrechen', value: null }, { label: 'Ersetzen', value: 'ok', cls: 'primary' }] }); if (r !== 'ok') return; makeSnapshot('Vor Beispieldaten'); }
+    trackStop(); data = sampleData(); prefs.focusId = null; dirty = true; flushSave(); prefs.view = 'overview'; savePrefs(); render();
+    toast('Beispieldaten geladen (frei erfunden)');
+  },
+  readback: () => { renderReadback(); openDialog('dlg-readback'); },
+  'rb-confirm': (el) => { const p = byId(el.dataset.id); if (!p) return; p.bestaetigt = !p.bestaetigt; changed(); renderReadback(); },
+  sort: (el) => { prefs.actionsSort = el.dataset.value; savePrefs(); renderSummary(); },
+  'open-help': () => { closeSheets(); openDialog('dlg-help'); },
+  'set-theme': (el) => { const r = document.documentElement; r.classList.add('theme-fade'); setTimeout(() => r.classList.remove('theme-fade'), 400); prefs.theme = el.dataset.value; savePrefs(); applyPrefs(); syncSeg(el.closest('.seg')); $$('#setTheme button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.value === prefs.theme))); syncSeg($('#setTheme')); },
+  font: (el) => { prefs.scale = Math.min(1.4, Math.max(1, Math.round((prefs.scale + 0.1 * +el.dataset.value) * 10) / 10)); savePrefs(); applyPrefs(); $('#fontPct').textContent = Math.round(prefs.scale * 100) + ' %'; requestAnimationFrame(() => { growAll(document); measureTopbar(); $$('.seg').forEach((sg) => syncSeg(sg, false)); }); },
+  'dismiss-safari': () => { prefs.safariHintDismissed = true; savePrefs(); render(); },
+};
+
+function bind() {
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-action]');
+    if (el && !el.disabled && ACTIONS[el.dataset.action]) { e.preventDefault(); ACTIONS[el.dataset.action](el, e); return; }
+    if (e.target.tagName === 'DIALOG' && e.target.id !== 'dlg-choice') closeDlg(e.target);
+  });
+  document.addEventListener('keydown', (e) => {
+    const typing = e.target.closest && e.target.closest('input,textarea,select');
+    const dlgOpen = $$('dialog').some((d) => d.open);
+    if (e.target.matches && e.target.matches('[role="button"][data-action]') && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.target.click(); return; }
+    if (prefs.view === 'focus' && !dlgOpen) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); slideTo(1); return; }
+      if (!typing && e.key === 'ArrowRight') { e.preventDefault(); slideTo(1); }
+      if (!typing && e.key === 'ArrowLeft') { e.preventDefault(); slideTo(-1); }
+    }
+    if ((e.metaKey || e.ctrlKey) && (e.key === 's' || e.key === 'S')) { e.preventDefault(); flushSave(); toast('Gespeichert'); }
+  });
+  const onField = (e) => {
+    const el = e.target;
+    if (el.tagName === 'TEXTAREA') grow(el);
+    if (el.dataset.field && el.dataset.id) {
+      const p = byId(el.dataset.id); if (!p) return;
+      if (p[el.dataset.field] === el.value) return;
+      p[el.dataset.field] = el.value; changed();
+      if (['beschluss', 'verantwortlich', 'frist'].includes(el.dataset.field)) refreshFocusLive(p);
+      if (el.dataset.field === 'kategorie' && !focusEdit) renderFocus();
+      return;
+    }
+    if (el.dataset.mfield) {
+      const k = el.dataset.mfield; if (data.meeting[k] === el.value) return;
+      data.meeting[k] = el.value; changed();
+      return;
+    }
+    if (el.dataset.imp != null) { const it = importState.items[+el.dataset.imp]; if (it) { it[el.dataset.key] = el.value; if (el.dataset.key === 'kategorie') it.katAuto = false; } return; }
+    if (el.dataset.pref) {
+      prefs[el.dataset.pref] = el.type === 'checkbox' ? el.checked : el.value; savePrefs();
+      if (el.dataset.pref === 'wake') updateWakeLock();
+      return;
+    }
+    if (el.id === 'searchInput') { search = el.value; renderCards(); return; }
+    if (el.id === 'fKat') { prefs.fKat = el.value; savePrefs(); renderCards(); return; }
+    if (el.id === 'importText') { updateImportPreviewSoon(); return; }
+    if (el.id === 'impAuto') { updateImportPreview(); }
+  };
+  document.addEventListener('input', onField);
+  document.addEventListener('change', onField);
+  $('#fileJson').addEventListener('change', async (e) => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    try { const d = readJSONText(await f.text()); await confirmRestore(d, 'Backup laden?'); }
+    catch (err) { toast(err.message || 'Datei konnte nicht gelesen werden.', { timeout: 8000 }); }
+  });
+  $$('dialog').forEach((d) => d.addEventListener('close', () => {
+    if (d.ignoreClose) { d.ignoreClose--; return; } // Ende der Ausblend-Bewegung: kein zweites Neuzeichnen
+    if (d.id === 'dlg-meeting' || d.id === 'dlg-readback') render();
+  }));
+  document.addEventListener('touchstart', () => {}, { passive: true }); // iOS: :active sofort beim Berühren
+  window.addEventListener('scroll', updateEdges, { passive: true });
+  $$('dialog').forEach((d) => { enableSheetDrag(d); d.addEventListener('cancel', (e) => { e.preventDefault(); closeDlg(d); }); });
+  enableFocusSwipe();
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') { trackStop(); flushSave(); }
+    else { trackStart(); applyType(); syncNow(); }
+    updateWakeLock();
+  });
+  window.addEventListener('pagehide', () => { trackStop(); flushSave(); });
+  window.addEventListener('online', () => syncNow());
+  window.addEventListener('offline', () => { if (signedIn()) setSync('offline'); });
+  document.addEventListener('focusout', () => { if (pendingRender) setTimeout(() => { const a = document.activeElement; if (pendingRender && !(a && a.closest && a.closest('main input, main textarea, main select'))) { pendingRender = false; render(); } }, 0); });
+  setInterval(() => { if (document.visibilityState === 'visible' && signedIn()) syncNow(); }, 45000);
+  window.addEventListener('storage', (e) => {
+    if (e.key !== KEY || !e.newValue) return;
+    try { data = normalizeData(JSON.parse(e.newValue)); render(); toast('In einem anderen Fenster geändert'); } catch (_) { /* egal */ }
+  });
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { measureTopbar(); growAll($('#v-' + prefs.view)); $$('.seg').forEach((sg) => syncSeg(sg, false)); }, 150); });
+}
+function registerSW() {
+  if (!('serviceWorker' in navigator)) return;
+  if (!(location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) return;
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hadController) toast('Neue Version verfügbar', { action: { label: 'Neu laden', fn: () => { flushSave(); location.reload(); } }, timeout: 15000 });
+  });
+}
+
+function init() {
+  prefs = loadPrefs(); applyPrefs();
+  storageOk = testStorage();
+  loadSync();
+  data = loadData(); setBaseline();
+  bind(); measureTopbar(); render();
+  setSaveState(storageOk ? 'saved' : 'error');
+  if (!storageOk) toast('Speichern nicht möglich (privates Surfen?). Bitte Backups nutzen.', { timeout: 15000 });
+  setInterval(tick, 1000);
+  registerSW();
+  updateWakeLock(); trackStart();
+  if (syncConfigured()) setSync(signedIn() ? 'ok' : 'login');
+  handleRedirect().then((handled) => { if (!handled) syncNow(); });
+  window.__app = { get data() { return data; }, parseList, buildCSV, buildText, flushSave, mergeData, syncNow, get syncState() { return syncState; } };
+}
+init();
+})();
+</script>
+</body>
+</html>

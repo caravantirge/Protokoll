@@ -1,0 +1,28 @@
+Kritikpunkte aus der Werkstatt (frei erfundene Testdaten)
+
+1. Kritik: Garantieanträge bleiben liegen.
+Lösung: Feste Zuständigkeit im Teiledienst. Offen: Wer vertritt im Urlaub?
+
+2) Kritik: Erste Zeile der Kritik
+zweite Zeile der Kritik
+
+Lösung: Etwas Sinnvolles.
+
+3.
+Kritik: Nummer auf eigener Zeile
+Lösung: Geht auch.
+
+- 4. Kritik: Werkstatt-Ablauf ist unklar
+Lösung: Vorgehen:
+1. Schritt Plan erstellen
+2. Schritt Umsetzen
+Die Tür bleibt offen: für Rückfragen.
+
+5. Kritik: Azubis bekommen keine feste Betreuung
+Lösung: Ausbilderplan
+Kategorie: Personal
+Herkunft: GF
+Priorität: hoch
+
+**6. Kritik:** Fett formatiert aus Word
+**Loesung:** Markdown-Sternchen werden entfernt.
