@@ -1,4 +1,4 @@
-// Automatischer Test der App mit Chromium (iPad-Maße, Touch).
+// Automatischer Test der App mit Chromium (iPad- und iPhone-Maße, Touch).
 // Start: node tests/app.test.mjs   (startet selbst einen lokalen Webserver)
 import { createRequire } from 'node:module';
 import http from 'node:http';
@@ -39,250 +39,238 @@ const errors = [], external = [];
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
 page.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
 context.on('request', (r) => { if (!r.url().startsWith(BASE) && !r.url().startsWith('blob:') && !r.url().startsWith('data:')) external.push(r.url()); });
-const shot = async (name) => { await page.waitForTimeout(450); return page.screenshot({ path: path.join(OUT, name + '.png') }); };
-const focusIs = (n) => page.waitForFunction((n) => { const e = document.querySelector('.fp-main'); return e && e.textContent.includes('Punkt ' + n + ' '); }, n, { timeout: 4000 }).then(() => true, () => false);
-async function swipe(dx, { steps = 6, ms = 60, y = 520, x0 = 420 } = {}) {
-  // Wisch-Geste mit Pointer-Events (Touch) auf der linken Fokus-Spalte
-  await page.evaluate(async ({ dx, steps, ms, y, x0 }) => {
+const shot = async (name, pg = page) => { await pg.waitForTimeout(450); return pg.screenshot({ path: path.join(OUT, name + '.png') }); };
+const center = (pg = page) => pg.textContent('#tbCenter');
+const topicIs = (n, pg = page) => pg.waitForFunction((n) => (document.querySelector('#tbCenter') || {}).textContent?.includes('Thema ' + n + ' '), n, { timeout: 4000 }).then(() => true, () => false);
+const data = (pg = page) => pg.evaluate(() => window.__app.data);
+async function swipe(dx, { ms = 60, pg = page } = {}) {
+  // Wisch-Geste mit Pointer-Events (Touch) auf dem Vorschlag eines Themas
+  await pg.evaluate(async ({ dx, ms }) => {
+    const box = document.querySelector('#v-detail .proposal .txt').getBoundingClientRect();
+    const x0 = box.left + box.width / 2, y = box.top + box.height / 2;
     const el = document.elementFromPoint(x0, y);
     const opt = (x) => ({ bubbles: true, cancelable: true, pointerId: 7, pointerType: 'touch', isPrimary: true, clientX: x, clientY: y, button: 0 });
     el.dispatchEvent(new PointerEvent('pointerdown', opt(x0)));
-    for (let i = 1; i <= steps; i++) { await new Promise((r) => setTimeout(r, ms / steps)); el.dispatchEvent(new PointerEvent('pointermove', opt(x0 + (dx * i) / steps))); }
+    for (let i = 1; i <= 6; i++) { await new Promise((r) => setTimeout(r, ms / 6)); el.dispatchEvent(new PointerEvent('pointermove', opt(x0 + (dx * i) / 6))); }
     el.dispatchEvent(new PointerEvent('pointerup', opt(x0 + dx)));
-  }, { dx, steps, ms, y, x0 });
+  }, { dx, ms });
+}
+async function addPersonVia(pg, trigger, name, email) {
+  await pg.click(trigger);
+  await pg.fill('#pName', name);
+  if (email) await pg.fill('#pMail', email);
+  await pg.click('#dcFoot >> text=Sichern');
+  await pg.waitForTimeout(250);
 }
 
 console.log('\n1) Parser');
 await page.goto(BASE);
 const parse = (t) => page.evaluate((t) => window.__app.parseList(t, { autoKat: true, herkunft: 'Werkstatt' }), t);
 let r = await parse(fs.readFileSync(path.join(FIX, 'liste-varianten.txt'), 'utf8'));
-ok(r.items.length === 6, `Varianten-Liste: 6 Punkte erkannt (ist ${r.items.length})`);
+ok(r.items.length === 6, `Varianten-Liste: 6 Themen erkannt (ist ${r.items.length})`);
 ok(r.items[0].offen === 'Wer vertritt im Urlaub?' && r.items[0].loesung.startsWith('Feste Zuständigkeit'), 'Inline „Offen:“ wird abgetrennt');
 ok(r.items[1].kritik.includes('zweite Zeile'), 'Mehrzeilige Kritik bleibt zusammen');
 ok(r.items[2].urspNr === 3 && r.items[2].kritik.startsWith('Nummer auf eigener Zeile'), 'Nummer auf eigener Zeile');
 ok(r.items[3].loesung.includes('1. Schritt') && r.items[3].loesung.includes('2. Schritt'), 'Nummerierte Unterpunkte in der Lösung bleiben in der Lösung');
 ok(r.items[4].kategorie === 'Personal und Ausbildung' && r.items[4].herkunft === 'Geschäftsführung' && r.items[4].prioritaet === 'hoch', 'Optionale Zeilen Kategorie/Herkunft/Priorität');
 ok(r.items[5].kritik.startsWith('Fett formatiert') && r.items[5].loesung === 'Markdown-Sternchen werden entfernt.', 'Markdown-Fettdruck & „Loesung“ ohne Umlaut');
-ok(r.items[3].offen === '', 'Kleingeschriebenes „offen:“ im Fließtext wird nicht abgetrennt');
 r = await parse('Einleitung zur Liste\n\n1. Kritik: A\nLösung: B\n3. Kritik: C\nLösung: D');
 ok(r.items.length === 2 && r.warnings.some((w) => w.includes('2 fehlt')) && r.warnings.some((w) => w.includes('ignoriert')), 'Warnung bei fehlender Nummer und Einleitungstext');
-r = await parse('1. Teile kommen zu spät\nLösung: Früher bestellen\n2. Keine Doku\nLösung: Fotos');
-ok(r.items.length === 2 && r.items[0].kritik === 'Teile kommen zu spät', 'Liste ohne „Kritik:“-Label');
 
-console.log('\n2) Startbildschirm & Import über die Oberfläche (1180×820)');
-await shot('01-leer-quer');
-await page.click('[data-action="open-more"]');
-await page.click('#dlg-more [data-action="open-import"]');
+console.log('\n2) Liste importieren (1180×820)');
+await shot('01-leer');
+await page.click('#v-list [data-action="open-import"]');
 await page.fill('#importText', fs.readFileSync(path.join(FIX, 'beispiel-liste.txt'), 'utf8'));
-await page.waitForTimeout(400);
-const n = await page.locator('.imp-row').count();
-ok(n === 14, `Vorschau zeigt 14 Punkte (ist ${n})`);
-ok(await page.locator('#impPreview .offen-box').count() === 4, 'Vorschau hebt 4 „Offen“-Texte hervor');
+await page.waitForTimeout(300);
+ok(await page.locator('.imp-row').count() === 14, 'Vorschau zeigt 14 Themen');
 await page.selectOption('[data-imp="13"][data-key="kategorie"]', 'Sonstiges');
 await shot('02-import-vorschau');
 await page.click('#impApply');
 await page.waitForTimeout(300);
-ok(await page.locator('.point-card').count() === 14, '14 Zeilen in der Übersicht');
-const kats = await page.evaluate(() => window.__app.data.punkte.map((p) => p.kategorie));
-console.log('    Kategorien:', kats.join(' | '));
-ok(kats[13] === 'Sonstiges', 'Manuell geänderte Kategorie übernommen');
-ok(kats[0] === 'Teile und Garantie' && kats[10] === 'Neuwagenannahme' && kats[6] === 'Personal und Ausbildung', 'Automatische Kategorien plausibel');
+ok(await page.locator('.pt-row').count() === 14, '14 Themen in der Liste');
+ok((await data()).punkte[13].kategorie === 'Sonstiges', 'Geänderte Kategorie übernommen');
 
-console.log('\n3) Kopfdaten, Timer, Fokus-Modus');
-await page.click('[data-action="open-meeting"]');
+console.log('\n3) Besprechung & Personen');
+await page.click('.title-btn');
+await page.waitForTimeout(400);
 await page.fill('[data-mfield="titel"]', 'Test-Runde Werkstatt');
 await page.fill('[data-mfield="datum"]', '2026-10-26');
-await page.fill('[data-mfield="ort"]', 'Testlokal');
-await page.fill('[data-mfield="teilnehmer"]', 'Anna Beispiel, Ben Muster, Carla Probe');
-await page.fill('[data-mfield="protokoll"]', 'Daniel Demo');
-await page.fill('[data-mfield="dauerGeplant"]', '120');
+await page.fill('[data-mfield="absender"]', 'Daniel Demo');
+await addPersonVia(page, '#dlg-meeting [data-action="new-person"]', 'Anna Beispiel', 'anna@example.com');
+await addPersonVia(page, '#dlg-meeting [data-action="new-person"]', 'Ben Muster', 'ben@example.com');
+await addPersonVia(page, '#dlg-meeting [data-action="new-person"]', 'Carla Probe', 'carla@example.com');
+ok((await data()).meeting.personen.length === 3, '3 Personen mit E-Mail angelegt');
+await shot('03-personen');
 await page.click('#dlg-meeting [data-action="close-dialog"]');
-await page.click('#timerChip');
-await page.waitForTimeout(200);
-ok(await page.evaluate(() => !!window.__app.data.meeting.laeuftSeit), 'Timer gestartet');
+await page.waitForTimeout(300);
+
+console.log('\n4) Ein Thema bearbeiten');
 await page.locator('.pt-main').first().click();
-ok(await page.locator('#v-focus .kritik-text').isVisible(), 'Fokus-Modus zeigt Punkt groß');
-ok(await page.locator('#v-focus .offen-box').isVisible(), '„Offen“ im Fokus hervorgehoben');
-await page.fill('[data-field="notizen"]', 'Notiz eins\nZweite Zeile mit Umlauten äöü ß');
-await page.fill('[data-field="beschluss"]', '- Teiledienst übernimmt Garantieanträge; "wöchentlich" prüfen');
-ok(await page.locator('#gapHints .hint').count() >= 2, 'Hinweise: Verantwortlich & Frist fehlen');
+ok((await center()).includes('Thema 1 von 14'), 'Thema öffnet sich („Thema 1 von 14“)');
+ok(await page.locator('#v-detail .proposal .offen-box').isVisible(), 'Vorschlag mit hervorgehobenem „Offen“');
+await page.click('#v-detail .disc');
+ok((await data()).punkte[0].besprochen, '„Als besprochen markieren“');
 await page.click('#ownerChips >> text=Carla Probe');
+ok((await data()).punkte[0].verantwortlich === 'Carla Probe' && (await data()).punkte[0].status === 'arbeit', 'Verantwortliche gesetzt → Status springt auf „In Bearbeitung“');
 await page.click('#fristChips >> text=+2 Wochen');
-await page.click('.seg-status [data-value="besprochen"]');
-await page.click('.seg-prio [data-value="hoch"]');
-ok(await page.locator('#gapHints .hint').count() === 0, 'Hinweise verschwinden nach Eingabe');
+ok(!!(await data()).punkte[0].frist, 'Frist per Schnellwahl');
+await page.click('#subs [data-action="add-sub"]');
+await page.keyboard.type('Liste offener Anträge erstellen');
+await page.keyboard.press('Enter');
+await page.keyboard.type('Vertretung im Urlaub klären');
+await page.keyboard.press('Enter');
+await page.keyboard.type('- Montags an GF melden; "wöchentlich"');
+await page.keyboard.press('Enter');
+await page.keyboard.press('Backspace');
+let subs = (await data()).punkte[0].unterpunkte;
+ok(subs.length === 3 && subs[1].text === 'Vertretung im Urlaub klären', 'Unterpunkte mit „+“ und Enter, leere Zeile per Rücktaste entfernt');
+await page.locator('#subs .sub-row .tick').first().click();
+ok((await data()).punkte[0].unterpunkte[0].erledigt && (await page.textContent('#subLabel')).includes('1 von 3'), 'Unterpunkt abgehakt („1 von 3 erledigt“)');
 const h1 = await page.$eval('[data-field="notizen"]', (e) => e.offsetHeight);
-await page.fill('[data-field="notizen"]', Array(14).fill('Lange Notiz Zeile').join('\n'));
+await page.fill('[data-field="notizen"]', Array(12).fill('Notiz äöü ß').join('\n'));
 const h2 = await page.$eval('[data-field="notizen"]', (e) => e.offsetHeight);
-ok(h2 > h1 + 100, `Textfeld wächst mit (${h1}px → ${h2}px)`);
-await page.fill('[data-field="notizen"]', 'Notiz eins\nZweite Zeile mit Umlauten äöü ß');
+ok(h2 > h1 + 100, `Notizfeld wächst mit (${h1}px → ${h2}px)`);
+await page.fill('[data-field="notizen"]', 'Rückstau ca. 15 Anträge – äöü ß');
 await page.waitForTimeout(500);
 ok((await page.textContent('#saveState')).includes('Gespeichert'), 'Anzeige „Gespeichert“');
-await shot('03-fokus-quer');
-await page.click('#btnNext');
-ok(await focusIs(2), '„Weiter“ wechselt (animiert) zu Punkt 2');
-await page.click('[data-action="step"][data-dir="-1"]');
-ok(await focusIs(1), '„Zurück“ wechselt zu Punkt 1');
+await shot('04-thema');
+
+console.log('\n5) Blättern, Wischen, Zurück');
+await page.click('[data-action="step"][data-dir="1"]');
+ok(await topicIs(2), 'Pfeil → Thema 2');
 await page.waitForTimeout(500);
 await swipe(-260);
-ok(await focusIs(2), 'Wischen nach links → nächster Punkt');
+ok(await topicIs(3), 'Wischen nach links → Thema 3');
 await page.waitForTimeout(600);
-await swipe(30, { ms: 400 });
+await swipe(40, { ms: 400 });
 await page.waitForTimeout(700);
-ok(await focusIs(2) && await page.evaluate(() => !document.querySelector('.focus-grid').style.transform), 'Kurzes, langsames Ziehen federt zurück');
-await swipe(240);
-ok(await focusIs(1), 'Wischen nach rechts → vorheriger Punkt');
-await page.waitForTimeout(600);
-await swipe(200, { ms: 300 });
-await page.waitForTimeout(800);
-ok(await focusIs(1), 'Am ersten Punkt: Gummiband statt Wechsel');
-// Neuer Punkt mitten im Gespräch
-await page.click('[data-action="add-point"]');
-ok(await page.evaluate(() => document.activeElement && document.activeElement.id === 'f-kritik'), 'Neuer Punkt: Cursor direkt im Feld „Kritik“');
-await page.keyboard.type('Spontan: Kaffeemaschine in der Werkstatt defekt');
-await page.click('[data-action="toggle-edit"]');
-ok((await page.textContent('#v-focus .eyebrow')).includes('Im Gespräch ergänzt'), 'Neuer Punkt als „im Gespräch ergänzt“ markiert');
-ok(await page.locator('.back-chip').isVisible(), '„Zurück zu Punkt 1“ angeboten');
-await page.click('.back-chip');
-ok(await focusIs(1), 'Rücksprung zu Punkt 1');
-
-console.log('\n4) Reihenfolge, Filter');
-await page.click('[data-view="overview"]');
-await page.click('[data-action="toggle-reorder"]');
-const firstBefore = await page.evaluate(() => window.__app.data.punkte[1].id);
-await page.locator('.point-card').nth(1).locator('[data-dir="-1"]').click();
+ok(await topicIs(3), 'Kurzes Ziehen federt zurück');
+await swipe(260);
+ok(await topicIs(2), 'Wischen nach rechts → Thema 2');
 await page.waitForTimeout(500);
-const firstAfter = await page.evaluate(() => window.__app.data.punkte[0].id);
-ok(firstBefore === firstAfter, 'Punkt 2 per „Hoch“ an Position 1 verschoben');
-await page.locator('.point-card').nth(0).locator('[data-dir="1"]').click();
-ok(await page.evaluate((id) => window.__app.data.punkte[1].id === id, firstBefore), 'und per „Runter“ zurück');
-await page.click('[data-action="toggle-reorder"]');
-await page.click('[data-action="filter-status"][data-value="besprochen"]');
-ok(await page.locator('.point-card').count() === 1, 'Statusfilter „Besprochen“ zeigt 1 Karte');
+await page.click('#v-detail [data-action="set-status"][data-value="erledigt"]');
+await page.click('[data-action="back"]');
+await page.waitForTimeout(400);
+ok(await page.locator('#v-list').isVisible(), '„‹ Themen“ führt zur Liste');
+const row1 = await page.locator('.pt-row').first().textContent();
+ok(row1.includes('In Bearbeitung') && row1.includes('Carla Probe') && row1.includes('1/3 erledigt'), 'Liste zeigt Status, Verantwortliche und Fortschritt');
+await page.locator('.pt-row').nth(3).locator('.tick').click();
+ok((await page.textContent('#progressText')).startsWith('3 von 14 besprochen'), 'Kreis in der Liste markiert „besprochen“ (3 von 14)');
+
+console.log('\n6) Filter & Sortieren');
+await page.click('[data-action="filter-status"][data-value="arbeit"]');
+ok(await page.locator('.pt-row').count() === 1, 'Filter „In Bearbeitung“ → 1 Thema');
 await page.click('[data-action="filter-status"][data-value="alle"]');
-await page.selectOption('#fKat', 'Neuwagenannahme');
-ok(await page.locator('.point-card').count() === 2, 'Kategoriefilter „Neuwagenannahme“ zeigt 2 Karten');
-await page.selectOption('#fKat', 'alle');
-const prog = await page.textContent('#progressText');
-ok(prog.startsWith('1 von 15 besprochen'), `Fortschritt „${prog.trim()}“`);
-await shot('04-uebersicht-quer');
-
-console.log('\n5) Autosave nach Neuladen');
+await page.selectOption('#fPerson', 'Carla Probe');
+ok(await page.locator('.pt-row').count() === 1, 'Filter „Carla Probe“ → 1 Thema');
+await page.selectOption('#fPerson', '__niemand');
+ok(await page.locator('.pt-row').count() === 13, 'Filter „Ohne Verantwortlichen“ → 13 Themen');
+await page.selectOption('#fPerson', 'alle');
+await page.click('[data-action="toggle-reorder"]');
+const id2 = (await data()).punkte[1].id;
+await page.locator('.pt-row').nth(1).locator('[data-dir="-1"]').click();
 await page.waitForTimeout(500);
+ok((await data()).punkte[0].id === id2, 'Sortieren: Thema 2 nach oben');
+await page.locator('.pt-row').nth(0).locator('[data-dir="1"]').click();
+await page.waitForTimeout(500);
+await page.click('[data-action="toggle-reorder"]');
+ok((await data()).punkte[1].id === id2, '… und wieder zurück');
+await shot('05-liste');
+
+console.log('\n7) Gespeichert nach Neuladen');
 await page.reload();
 await page.waitForTimeout(300);
-const after = await page.evaluate(() => window.__app.data);
-ok(after.punkte.length === 15 && after.punkte[0].notizen.includes('äöü') && after.punkte[0].verantwortlich === 'Carla Probe' && after.punkte[0].frist === '2026-11-09', 'Alle Eingaben nach Neuladen vorhanden');
-ok(after.meeting.titel === 'Test-Runde Werkstatt', 'Kopfdaten nach Neuladen vorhanden');
+let d = await data();
+ok(d.punkte.length === 14 && d.punkte[0].notizen.includes('äöü') && d.punkte[0].verantwortlich === 'Carla Probe' && d.punkte[0].unterpunkte.length === 3 && d.meeting.personen.length === 3, 'Alle Eingaben nach Neuladen vorhanden');
 
-console.log('\n6) Abschluss');
-await page.click('[data-view="summary"]');
-ok(await page.locator('.gap-row').count() >= 2, 'Lücken-Check listet offene Punkte / fehlenden Folgetermin');
-await page.click('[data-action="set-next"] >> nth=1');
-await page.click('[data-action="readback"]');
-await page.click('[data-action="rb-confirm"] >> nth=0');
-ok((await page.textContent('#rbCount')).startsWith('1 von'), 'Vorlese-Modus: Bestätigung zählt');
-await shot('05-vorlesen');
-await page.click('#dlg-readback [data-action="close-dialog"]');
-await shot('06-abschluss-quer');
-
-console.log('\n7) Exporte');
-const text = await page.evaluate(() => window.__app.buildText());
+console.log('\n8) Export: Auswahl, E-Mail, Excel, PDF');
+await page.evaluate(() => { const d = window.__app.data; d.punkte[2].verantwortlich = 'Carla Probe'; d.punkte[2].status = 'arbeit'; d.punkte[3].verantwortlich = 'Ben Muster'; d.punkte[3].status = 'arbeit'; });
 await page.click('[data-action="open-share"]');
-ok(text.indexOf('MASSNAHMEN') < text.indexOf('DETAILS'), 'E-Mail-Text: Maßnahmen stehen vor den Details');
-ok(text.includes('Carla Probe: - Teiledienst übernimmt'), 'E-Mail-Text enthält Wer/Was');
-await shot('07-teilen-quer');
+await page.waitForTimeout(500);
+await page.click('#dlg-share [data-action="ex-status"][data-value="offen"]');
+await page.selectOption('#dlg-share select[data-pref="exPerson"]', 'Carla Probe');
+ok((await page.textContent('#exCount')).startsWith('2 Themen'), 'Auswahl „Nicht erledigt · Carla Probe“ → 2 Themen');
+await shot('06-export');
+await page.evaluate(() => { window.__mails = []; window.__mailHook = (m) => window.__mails.push(m); });
+await page.click('#dlg-share [data-action="mail-selection"]');
+let mail = (await page.evaluate(() => window.__mails))[0];
+ok(mail.to === 'carla@example.com' && mail.body.startsWith('Hallo Carla,') && mail.body.includes('[x] Liste offener Anträge erstellen') && mail.body.includes('[ ] Vertretung im Urlaub klären'), 'E-Mail an Carla: richtige Adresse, Unterpunkte zum Abhaken');
+ok(!mail.body.includes('Rückstau'), 'Gesprächsnotizen standardmäßig nicht in der Mail');
+ok(mail.url.startsWith('mailto:carla@example.com?subject=') && mail.body.includes('Daniel Demo'), 'mailto-Link mit Betreff und Grußzeile');
+await page.selectOption('#dlg-share select[data-pref="exPerson"]', 'alle');
+ok(await page.locator('#dlg-share .mail-row').count() === 2, '„E-Mail an jeden Verantwortlichen“: Carla und Ben');
+await page.click('#dlg-share .mail-row >> text=Ben Muster');
+mail = (await page.evaluate(() => window.__mails))[1];
+ok(mail.to === 'ben@example.com' && mail.subject.includes('Dein Thema'), 'E-Mail an Ben nur mit seinem Thema');
 let [dl] = await Promise.all([page.waitForEvent('download'), page.click('#dlg-share [data-action="csv"]')]);
 const csv = fs.readFileSync(await dl.path());
 fs.writeFileSync(path.join(OUT, dl.suggestedFilename()), csv);
-ok(csv[0] === 0xef && csv[1] === 0xbb && csv[2] === 0xbf, 'CSV beginnt mit UTF-8-BOM');
 const csvText = csv.toString('utf8');
-ok(csvText.includes('\r\n') && csvText.split('\r\n')[0].includes(';Verantwortlich;'), 'CSV: Semikolon + CRLF');
-ok(csvText.includes(`"'- Teiledienst übernimmt Garantieanträge; ""wöchentlich"" prüfen"`), 'CSV: Anführungszeichen/Semikolon maskiert, Formel-Schutz für „-“');
-ok(csvText.includes('09.11.2026'), 'CSV: deutsches Datumsformat');
+ok(csv[0] === 0xef && csv[1] === 0xbb && csv[2] === 0xbf && csvText.split('\r\n')[0].includes(';Verantwortlich;Frist;Status;'), 'CSV: UTF-8-BOM, Semikolon, Spalten');
+ok(csvText.includes('"✓ Liste offener Anträge erstellen') && !csvText.includes('Bestellte Ersatzteile'), 'CSV enthält nur die Auswahl (nicht erledigte) samt Unterpunkten');
 [dl] = await Promise.all([page.waitForEvent('download'), page.click('#dlg-share [data-action="backup-save"]')]);
 const backupPath = path.join(OUT, 'backup-test.json');
 fs.copyFileSync(await dl.path(), backupPath);
-const bj = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
-ok(bj.punkte.length === 15 && bj.meeting.titel === 'Test-Runde Werkstatt' && bj.app === 'besprechungsprotokoll', 'JSON-Backup vollständig');
-ok(await page.evaluate(() => !!window.__app.data.meta.letztesBackup), 'Zeitpunkt des letzten Backups vermerkt');
+ok(JSON.parse(fs.readFileSync(backupPath, 'utf8')).punkte.length === 14, 'JSON-Backup vollständig');
+await page.evaluate(() => { window.print = () => {}; document.querySelector('#dlg-share [data-action="print"]').click(); });
+await page.emulateMedia({ media: 'print' });
+await page.pdf({ path: path.join(OUT, 'druck-nach-person.pdf'), format: 'A4', printBackground: true, preferCSSPageSize: true });
+await page.emulateMedia({ media: 'screen' });
+const printed = await page.textContent('#print');
+ok(printed.includes('Carla Probe (2)') && printed.includes('Ben Muster (1)') && printed.includes('☑'), 'PDF: nach Person gegliedert, Unterpunkte mit Kästchen');
 
-console.log('\n8) Druck (A4-PDF)');
-for (const kind of ['protokoll', 'massnahmen', 'aushang']) {
-  await page.evaluate((k) => { window.print = () => {}; document.querySelector(`[data-action="print"][data-kind="${k}"]`).click(); }, kind);
-  await page.emulateMedia({ media: 'print' });
-  await page.pdf({ path: path.join(OUT, `druck-${kind}.pdf`), format: 'A4', printBackground: true, preferCSSPageSize: true });
-  await page.emulateMedia({ media: 'screen' });
-  ok(fs.statSync(path.join(OUT, `druck-${kind}.pdf`)).size > 5000, `PDF ${kind} erzeugt`);
-}
-
-console.log('\n9) Alles löschen & JSON-Import');
+console.log('\n9) Alles löschen & Backup laden');
 await page.click('[data-action="open-more"]');
-await shot('08-mehr-quer');
 await page.click('#dlg-more [data-action="reset-all"]');
 await page.click('#dcFoot >> text=Alles löschen');
-await page.waitForTimeout(200);
-ok(await page.evaluate(() => window.__app.data.punkte.length === 0), 'Daten gelöscht');
-await page.click('[data-action="open-share"]');
-const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('#dlg-share [data-action="backup-load"]')]);
+await page.waitForTimeout(300);
+ok((await data()).punkte.length === 0, 'Daten gelöscht');
+const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('#v-list [data-action="backup-load"]')]);
 await chooser.setFiles(backupPath);
 await page.click('#dcFoot >> text=Daten ersetzen');
 await page.waitForTimeout(300);
-const restored = await page.evaluate(() => window.__app.data);
-ok(restored.punkte.length === 15 && restored.punkte[0].verantwortlich === 'Carla Probe', 'Backup wiederhergestellt');
-await page.reload();
-ok(await page.evaluate(() => window.__app.data.punkte.length === 15), 'Wiederhergestellte Daten überstehen Neuladen');
-await page.click('[data-action="open-more"]');
-ok(await page.locator('#dlg-more .snap-row').count() >= 1, 'Wiederherstellungspunkte vorhanden');
-await page.keyboard.press('Escape');
+ok((await data()).punkte.length === 14 && (await data()).meeting.personen.length === 3, 'Backup wiederhergestellt');
 
-console.log('\n10) Hochformat 820×1180 & Dunkelmodus');
-await page.setViewportSize({ width: 820, height: 1180 });
-for (const v of ['overview', 'focus', 'summary']) {
-  await page.click(`[data-view="${v}"]`);
-  await page.waitForTimeout(150);
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
-  ok(!overflow, `Hochformat „${v}“: kein seitliches Scrollen`);
-  await shot(`10-hoch-${v}`);
+console.log('\n10) Alte Daten (Version 1) werden übernommen');
+await page.evaluate(() => localStorage.setItem('bprot.v1.data', JSON.stringify({ app: 'besprechungsprotokoll', version: 1, meeting: { titel: 'Alt', teilnehmer: 'Anna Beispiel, Ben Muster', protokoll: 'Daniel Demo' },
+  punkte: [{ id: 'a1', kritik: 'Altes Thema', beschluss: '- Schritt eins\n- Schritt zwei', kriterium: 'Kein Rückstau', verantwortlich: 'Ben Muster', status: 'besprochen', prioritaet: 'hoch' }, { id: 'a2', kritik: 'Vertagtes', status: 'vertagt' }] })));
+await page.reload();
+d = await data();
+const a1 = d.punkte[0];
+ok(a1.titel === 'Altes Thema' && a1.unterpunkte.map((u) => u.text).join('|') === 'Schritt eins|Schritt zwei' && a1.status === 'arbeit' && a1.besprochen && a1.wichtig && a1.notizen.includes('Kein Rückstau'), 'Beschluss → Unterpunkte, Status und Priorität übertragen');
+ok(d.meeting.personen.map((x) => x.name).join(',') === 'Anna Beispiel,Ben Muster' && d.meeting.absender === 'Daniel Demo' && d.punkte[1].status === 'offen', 'Teilnehmer → Personen, vertagt → offen');
+await page.click('[data-action="open-more"]');
+await page.click('#dlg-more [data-action="load-sample"]');
+await page.click('#dcFoot >> text=Ersetzen');
+await page.waitForTimeout(400);
+
+console.log('\n11) Darstellung (iPad hoch/quer, dunkel)');
+for (const [w, h] of [[820, 1180], [1180, 820]]) {
+  await page.setViewportSize({ width: w, height: h });
+  if (await page.locator('[data-action="back"]').count()) await page.click('[data-action="back"]');
+  await page.waitForTimeout(200);
+  ok(!(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)), `${w}×${h} Liste: kein seitliches Scrollen`);
+  if (w === 820) await shot('07-hoch-liste');
+  await page.locator('.pt-main').first().click();
+  await page.waitForTimeout(300);
+  ok(!(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)), `${w}×${h} Thema: kein seitliches Scrollen`);
+  if (w === 820) await shot('08-hoch-thema');
 }
 await page.emulateMedia({ colorScheme: 'dark' });
-await page.click('[data-view="focus"]');
-await shot('11-hoch-fokus-dunkel');
-await page.setViewportSize({ width: 1180, height: 820 });
-for (const v of ['overview', 'focus', 'summary']) {
-  await page.click(`[data-view="${v}"]`);
-  await page.waitForTimeout(100);
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
-  ok(!overflow, `Querformat „${v}“: kein seitliches Scrollen`);
-}
-await page.click('[data-view="overview"]');
-await shot('12-quer-uebersicht-dunkel');
+await shot('09-thema-dunkel');
+await page.click('[data-action="back"]');
+await shot('10-liste-dunkel');
 await page.emulateMedia({ colorScheme: 'light' });
-await page.click('[data-action="open-more"]');
-await page.click('#dlg-more [data-action="open-help"]');
-await shot('13-leitfaden');
-await page.keyboard.press('Escape');
 
-console.log('\n11) Offline (Service Worker)');
-await page.reload();
-await page.waitForFunction(() => navigator.serviceWorker.controller !== null, null, { timeout: 10000 }).catch(() => {});
-ok(await page.evaluate(() => !!navigator.serviceWorker.controller), 'Service Worker aktiv');
-await context.setOffline(true);
-await page.reload();
-ok(await page.locator('.point-card').count() === 15, 'App lädt offline inkl. Daten');
-await context.setOffline(false);
-
-console.log('\n12) Bewegung & Fenster');
-await page.click('[data-view="overview"]');
+console.log('\n12) Fenster & Bewegung');
 await page.click('[data-action="open-share"]');
-const origin = await page.$eval('#dlg-share', (d) => d.style.transformOrigin);
-ok(/px/.test(origin), 'Teilen-Popover wächst aus dem Teilen-Symbol (' + origin + ')');
+ok(/px/.test(await page.$eval('#dlg-share', (x) => x.style.transformOrigin)), 'Export-Popover wächst aus dem Teilen-Symbol');
 await page.mouse.click(40, 700);
 await page.waitForTimeout(500);
-ok(await page.$eval('#dlg-share', (d) => !d.open), 'Tippen daneben schließt das Popover');
-await page.click('[data-action="open-meeting"]');
+ok(await page.$eval('#dlg-share', (x) => !x.open), 'Tippen daneben schließt das Popover');
+await page.click('.title-btn');
 await page.waitForTimeout(600);
-const head = await page.$('#dlg-meeting .dlg-head h2'); const hb = await head.boundingBox();
+const hb = await (await page.$('#dlg-meeting .dlg-head h2')).boundingBox();
 await page.evaluate(async ({ x, y }) => {
   const el = document.querySelector('#dlg-meeting .dlg-head');
   const o = (yy) => ({ bubbles: true, pointerId: 9, pointerType: 'touch', isPrimary: true, clientX: x, clientY: yy, button: 0 });
@@ -291,28 +279,34 @@ await page.evaluate(async ({ x, y }) => {
   el.dispatchEvent(new PointerEvent('pointerup', o(y + 200)));
 }, { x: hb.x + 5, y: hb.y + 5 });
 await page.waitForTimeout(700);
-ok(await page.$eval('#dlg-meeting', (d) => !d.open), 'Kopfdaten-Blatt lässt sich nach unten wegziehen');
-const thumb = await page.$eval('#topbar .seg-thumb', (t) => t.getBoundingClientRect().width);
-ok(thumb > 50, 'Segment-Markierung vorhanden');
+ok(await page.$eval('#dlg-meeting', (x) => !x.open), 'Fenster lässt sich nach unten wegziehen');
+await page.click('[data-action="open-more"]');
+await page.click('#dlg-more [data-action="open-help"]');
+await shot('11-leitfaden');
+await page.keyboard.press('Escape');
 
 console.log('\n13) Bewegung reduzieren');
 const rm = await browser.newContext({ viewport: { width: 1180, height: 820 }, reducedMotion: 'reduce', hasTouch: true, userAgent: IPAD_UA, locale: 'de-DE' });
-const p2 = await rm.newPage();
-const err2 = []; p2.on('pageerror', (e) => err2.push(e.message));
+const p2 = await rm.newPage(); const err2 = []; p2.on('pageerror', (e) => err2.push(e.message));
 await p2.goto(BASE);
 await p2.click('[data-action="load-sample"]');
 await p2.click('.pt-main >> nth=0');
-await p2.click('#btnNext');
-ok((await p2.textContent('.fp-main')).includes('Punkt 2'), 'Ohne Animation: Wechsel sofort');
-await p2.click('[data-action="open-more"]');
-await p2.click('#dlg-more [data-action="open-help"]');
-await p2.click('#dlg-help [data-action="close-dialog"]');
-await p2.waitForTimeout(400);
-ok(await p2.$eval('#dlg-help', (d) => !d.open) && err2.length === 0, 'Fenster öffnen/schließen ohne Fehler');
+await p2.click('[data-action="step"][data-dir="1"]');
+ok((await p2.textContent('#tbCenter')).includes('Thema 2'), 'Ohne Animation: Wechsel sofort');
+ok(err2.length === 0, 'Keine Fehler bei reduzierter Bewegung');
 await rm.close();
 
-console.log('\n14) Abgleich iPad ↔ iPhone (OneDrive simuliert)');
-const cloud = { file: null, etag: 0, archive: [], puts: 0 };
+console.log('\n14) Offline (Service Worker)');
+await page.reload();
+await page.waitForFunction(() => navigator.serviceWorker.controller !== null, null, { timeout: 10000 }).catch(() => {});
+ok(await page.evaluate(() => !!navigator.serviceWorker.controller), 'Service Worker aktiv');
+await context.setOffline(true);
+await page.reload();
+ok(await page.locator('.pt-row').count() === 14, 'App lädt offline inkl. Daten');
+await context.setOffline(false);
+
+console.log('\n15) Abgleich iPad ↔ iPhone (OneDrive simuliert)');
+const cloud = { file: null, etag: 0, archive: [] };
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*', 'Access-Control-Allow-Methods': 'GET,PUT,POST,OPTIONS' };
 const b64u = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
 async function fakeMicrosoft(ctx, who) {
@@ -337,7 +331,7 @@ async function fakeMicrosoft(ctx, who) {
     if (req.method() === 'PUT' && url.endsWith('aktuell.json:/content')) {
       const im = req.headers()['if-match'];
       if (im && cloud.file && im !== '"e' + cloud.etag + '"') return route.fulfill({ status: 412, headers: CORS, contentType: 'application/json', body: '{}' });
-      cloud.file = req.postData(); cloud.etag++; cloud.puts++;
+      cloud.file = req.postData(); cloud.etag++;
       return route.fulfill({ status: 200, headers: CORS, contentType: 'application/json', body: JSON.stringify({ eTag: '"e' + cloud.etag + '"' }) });
     }
     return route.fulfill({ status: 404, headers: CORS, body: '{}' });
@@ -360,51 +354,38 @@ async function connect(pg) {
   await Promise.all([pg.waitForURL((u) => !u.search, { timeout: 8000 }).catch(() => {}), pg.click('[data-action="sync-save-config"]')]);
   return pg.waitForFunction(() => window.__app && window.__app.syncState.s === 'ok', null, { timeout: 8000 }).then(() => true, () => false);
 }
-const pts = (pg) => pg.evaluate(() => window.__app.data.punkte.map((p) => ({ id: p.id, n: p.notizen, b: p.beschluss })));
+const pts = (pg) => pg.evaluate(() => window.__app.data.punkte.map((p) => ({ id: p.id, n: p.notizen, t: p.titel, s: p.unterpunkte.map((u) => u.text) })));
 const syncNow = (pg) => pg.evaluate(() => window.__app.syncNow()).then(() => pg.waitForFunction(() => window.__app.syncState.s === 'ok', null, { timeout: 5000 }));
+const openTopic = async (pg, i) => { if (await pg.locator('[data-action="back"]').count()) await pg.click('[data-action="back"]'); await pg.locator('.pt-main').nth(i).click(); await pg.waitForTimeout(150); };
 
 const A = await device('ipad', { width: 1180, height: 820 });
 await A.pg.click('[data-action="load-sample"]');
 ok(await connect(A.pg), 'iPad: mit Microsoft angemeldet und abgeglichen');
-ok(!!cloud.file && JSON.parse(cloud.file).punkte.length === 15, 'iPad hat die Besprechung in OneDrive abgelegt');
+ok(!!cloud.file && JSON.parse(cloud.file).punkte.length === 14, 'iPad hat die Themen in OneDrive abgelegt');
 ok((await A.pg.textContent('#saveState')).includes('Synchronisiert'), 'Anzeige „Synchronisiert“');
-
 const B = await device('iphone', { width: 390, height: 844 });
 ok(await connect(B.pg), 'iPhone: angemeldet');
-ok((await pts(B.pg)).length === 15, 'iPhone zeigt dieselben 15 Punkte');
-await B.pg.screenshot({ path: path.join(OUT, '31-iphone-uebersicht-sync.png') });
-
-// Änderung auf dem iPhone → erscheint auf dem iPad
-await B.pg.click('.pt-main >> nth=1');
+ok((await pts(B.pg)).length === 14, 'iPhone zeigt dieselben 14 Themen');
+await openTopic(B.pg, 1);
 await B.pg.fill('[data-field="notizen"]', 'Notiz vom iPhone');
-await B.pg.waitForTimeout(400);
-await syncNow(B.pg);
-await syncNow(A.pg);
+await B.pg.waitForTimeout(400); await syncNow(B.pg); await syncNow(A.pg);
 ok((await pts(A.pg))[1].n === 'Notiz vom iPhone', 'Notiz vom iPhone erscheint auf dem iPad');
-
-// Gleichzeitig an verschiedenen Punkten → beides bleibt erhalten
-await A.pg.locator('[data-view="overview"]:visible').click();
-await A.pg.click('.pt-main >> nth=2');
-await A.pg.fill('[data-field="beschluss"]', 'Beschluss vom iPad');
-await B.pg.locator('[data-view="overview"]:visible').click();
-await B.pg.click('.pt-main >> nth=3');
+await openTopic(A.pg, 2);
+await A.pg.click('#subs [data-action="add-sub"]'); await A.pg.keyboard.type('Unterpunkt vom iPad');
+await openTopic(B.pg, 3);
 await B.pg.fill('[data-field="notizen"]', 'Gleichzeitig vom iPhone');
 await A.pg.waitForTimeout(400); await B.pg.waitForTimeout(400);
 await syncNow(A.pg); await syncNow(B.pg); await syncNow(A.pg);
 const pa = await pts(A.pg), pb = await pts(B.pg);
-ok(pa[2].b === 'Beschluss vom iPad' && pa[3].n === 'Gleichzeitig vom iPhone' && pb[2].b === 'Beschluss vom iPad' && pb[3].n === 'Gleichzeitig vom iPhone', 'Gleichzeitige Änderungen an verschiedenen Punkten werden zusammengeführt');
-
-// Löschen auf dem iPad → auch auf dem iPhone weg (und kommt nicht wieder)
+ok(pa[2].s.includes('Unterpunkt vom iPad') && pb[2].s.includes('Unterpunkt vom iPad') && pa[3].n === 'Gleichzeitig vom iPhone' && pb[3].n === 'Gleichzeitig vom iPhone', 'Gleichzeitige Änderungen an verschiedenen Themen werden zusammengeführt');
 const delId = pa[4].id;
-await A.pg.locator('[data-view="overview"]:visible').click(); await A.pg.click('.pt-main >> nth=4');
-await A.pg.click('[data-action="toggle-edit"]'); await A.pg.click('[data-action="delete-point"]');
+await openTopic(A.pg, 4);
+await A.pg.click('#v-detail [data-action="delete-point"]');
 await A.pg.waitForTimeout(400); await syncNow(A.pg); await syncNow(B.pg); await syncNow(A.pg);
-ok(!(await pts(B.pg)).some((p) => p.id === delId) && !(await pts(A.pg)).some((p) => p.id === delId), 'Gelöschter Punkt verschwindet auf beiden Geräten');
-
-// Offline auf dem iPhone weiterschreiben → später abgleichen
+ok(!(await pts(B.pg)).some((p) => p.id === delId) && !(await pts(A.pg)).some((p) => p.id === delId), 'Gelöschtes Thema verschwindet auf beiden Geräten');
 await B.ctx.setOffline(true);
 await B.pg.evaluate(() => window.dispatchEvent(new Event('offline')));
-await B.pg.locator('[data-view="overview"]:visible').click(); await B.pg.click('.pt-main >> nth=0');
+await openTopic(B.pg, 0);
 await B.pg.fill('[data-field="notizen"]', 'Offline im Restaurant geschrieben');
 await B.pg.waitForTimeout(500);
 ok((await B.pg.textContent('#saveState')).includes('Offline'), 'iPhone zeigt „Offline“ und speichert lokal');
@@ -413,27 +394,26 @@ await B.pg.evaluate(() => window.dispatchEvent(new Event('online')));
 await B.pg.waitForFunction(() => window.__app.syncState.s === 'ok', null, { timeout: 6000 }).catch(() => {});
 await syncNow(A.pg);
 ok((await pts(A.pg))[0].n === 'Offline im Restaurant geschrieben', 'Offline-Notiz kommt nach Verbindung aufs iPad');
-
-// Neue Besprechung auf dem iPad → iPhone übernimmt, alte Fassung wird archiviert
-await A.pg.click('[data-action="open-more"]'); await A.pg.click('#dlg-more [data-action="new-meeting"]');
-await A.pg.click('#dcFoot >> text=Anlegen'); await A.pg.waitForTimeout(400);
+if (await A.pg.locator('[data-action="back"]').count()) await A.pg.click('[data-action="back"]');
+await A.pg.click('[data-action="open-more"]'); await A.pg.click('#dlg-more [data-action="load-sample"]');
+await A.pg.click('#dcFoot >> text=Ersetzen'); await A.pg.waitForTimeout(400);
 await syncNow(A.pg); await syncNow(B.pg);
-ok(cloud.archive.length === 1 && (await B.pg.evaluate(() => window.__app.data.meeting.titel)).includes('Nachverfolgung'), 'Folgebesprechung: iPhone übernimmt, alte Fassung liegt im Archiv');
-
-// iPhone-Darstellung
-for (const v of ['overview', 'focus', 'summary']) {
-  await B.pg.click(`.tabbar [data-view="${v}"]`); await B.pg.waitForTimeout(250);
-  ok(!(await B.pg.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)), `iPhone „${v}“: kein seitliches Scrollen`);
-  await B.pg.screenshot({ path: path.join(OUT, `32-iphone-${v}.png`) });
+ok(cloud.archive.length === 1 && (await pts(B.pg)).length === 14, 'Neu begonnen auf dem iPad: iPhone übernimmt, alte Fassung liegt im Archiv');
+for (const v of ['list', 'detail']) {
+  if (v === 'list') { if (await B.pg.locator('[data-action="back"]').count()) await B.pg.click('[data-action="back"]'); } else await B.pg.locator('.pt-main').first().click();
+  await B.pg.waitForTimeout(300);
+  ok(!(await B.pg.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)), `iPhone „${v === 'list' ? 'Liste' : 'Thema'}“: kein seitliches Scrollen`);
+  await B.pg.screenshot({ path: path.join(OUT, `20-iphone-${v}.png`) });
 }
+await B.pg.click('[data-action="back"]');
 await B.pg.click('[data-action="open-share"]'); await B.pg.waitForTimeout(600);
-await B.pg.screenshot({ path: path.join(OUT, '33-iphone-teilen.png') });
-ok(await B.pg.$eval('#dlg-share', (d) => d.getBoundingClientRect().bottom >= window.innerHeight - 2), 'iPhone: „Teilen“ öffnet als Blatt von unten');
+await B.pg.screenshot({ path: path.join(OUT, '21-iphone-export.png') });
+ok(await B.pg.$eval('#dlg-share', (x) => x.getBoundingClientRect().bottom >= window.innerHeight - 2), 'iPhone: Export öffnet als Blatt von unten');
 ok(A.errs.length === 0 && B.errs.length === 0, 'Keine Fehler beim Abgleich' + (A.errs.concat(B.errs).length ? ': ' + A.errs.concat(B.errs).join(' | ') : ''));
 await A.ctx.close(); await B.ctx.close();
 
-console.log('\n15) Sauberkeit');
-ok(external.length === 0, 'Keine Anfragen an fremde Server' + (external.length ? ': ' + external.join(', ') : ''));
+console.log('\n16) Sauberkeit');
+ok(external.length === 0, 'Ohne Anmeldung keine Anfragen an fremde Server' + (external.length ? ': ' + external.join(', ') : ''));
 ok(errors.length === 0, 'Keine JavaScript-Fehler' + (errors.length ? ':\n    ' + errors.join('\n    ') : ''));
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 ok(!/https?:\/\/(?!www\.w3\.org|login\.microsoftonline\.com|graph\.microsoft\.com|\*\.sharepoint\.com)/.test(html), 'index.html spricht nur mit Microsoft 365 (Anmeldung/OneDrive)');

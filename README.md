@@ -47,7 +47,14 @@ So funktioniert der Abgleich:
 - Ändern beide Geräte gleichzeitig verschiedene Punkte, bleibt beides erhalten. Am selben Punkt gewinnt die zuletzt gespeicherte Änderung.
 - Die Anmeldung muss etwa einmal am Tag mit einem Tipp erneuert werden. Das ist eine Microsoft-Regel für Web-Apps.
 
-## 4. Liste importieren
+## 4. So arbeitest du damit
+
+- **Themenliste:** Alle Themen auf einen Blick. Der Kreis vorn markiert „besprochen“, rechts steht der Status (In Bearbeitung / Erledigt), darunter Verantwortlicher, Frist und Fortschritt der Unterpunkte. Filtern nach Status, Person oder Kategorie.
+- **Thema antippen:** Text, Vorschlag, Status (Offen · In Bearbeitung · Erledigt), verantwortliche Person, Frist und **Unterpunkte** – jede Zeile einzeln, mit „+“ oder Enter kommt die nächste. Mit den Pfeilen oben oder durch Wischen geht es zum nächsten Thema.
+- **Personen:** Einmal unter „…“ → *Besprechung & Personen* anlegen, am besten mit E-Mail-Adresse.
+- **Export (Teilen-Symbol):** Auswahl „Alle / Nicht erledigt / Erledigt“ und eine Person → PDF, E-Mail, Text oder Excel. Unter „E-Mail an jeden Verantwortlichen“ bekommt jede Person mit einem Tipp nur ihre Themen, mit Unterpunkten zum Abhaken.
+
+## 5. Liste importieren
 
 „…“ → **Liste importieren**: Liste einfügen, Vorschau prüfen, oben rechts auf „… übernehmen“ tippen. Erkanntes Format:
 
@@ -60,7 +67,7 @@ Lösung: …
 
 Optional kann jeder Punkt diese Zeilen haben: `Kategorie: …`, `Herkunft: Werkstatt/GF`, `Priorität: hoch/mittel/niedrig`.
 
-## 5. Sichern
+## 6. Sichern
 
 - Mit Anmeldung liegt alles in deinem OneDrive. Ältere Besprechungen findest du im Ordner `Archiv`.
 - Zusätzlich gibt es jederzeit Teilen-Symbol → **Backup sichern …** → „In Dateien sichern“.
