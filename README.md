@@ -12,7 +12,7 @@ Dieses Repository ist öffentlich und enthält nur die App. **Firmeninternes geh
 
 1. Das Repository ist bereits öffentlich. Beim kostenlosen Konto geht Pages nur so.
 2. **Settings → Pages**: Bei *Source* „Deploy from a branch“ wählen, dann Branch `main` und Ordner `/ (root)` → **Save**.
-3. Nach 1 bis 10 Minuten läuft die App unter **https://caravantirge.github.io/protokoll/**.
+3. Nach 1 bis 10 Minuten läuft die App unter **https://caravantirge.github.io/Protokoll/**.
 
 Netlify Drop eignet sich nicht: Seiten, die ohne Konto hochgeladen werden, löscht Netlify wieder.
 
@@ -23,7 +23,7 @@ Dafür brauchst du die Rolle *Anwendungsadministrator* oder *Cloudanwendungsadmi
 1. **entra.microsoft.com** öffnen → **Anwendungen → App-Registrierungen → Neue Registrierung**.
 2. Name: `Besprechungsprotokoll`.
    Unterstützte Kontotypen: **„Nur Konten in diesem Organisationsverzeichnis“**.
-   Umleitungs-URI: Plattform **„Single-Page-Anwendung (SPA)“**, Adresse **`https://caravantirge.github.io/protokoll/`**.
+   Umleitungs-URI: Plattform **„Single-Page-Anwendung (SPA)“**, Adresse **`https://caravantirge.github.io/Protokoll/`**.
    → **Registrieren**.
 3. Auf der Übersichtsseite notieren:
    - **Anwendungs-ID (Client)**
