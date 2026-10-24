@@ -369,9 +369,7 @@ async function device(name, viewport) {
 async function connect(pg) {
   await pg.click('[data-action="open-more"]');
   await pg.click('#dlg-more [data-action="open-sync"]');
-  await pg.fill('#msClient', '11111111-2222-3333-4444-555555555555');
-  await pg.fill('#msTenant', 'example.onmicrosoft.com');
-  await Promise.all([pg.waitForURL((u) => !u.search, { timeout: 8000 }).catch(() => {}), pg.click('[data-action="sync-save-config"]')]);
+  await Promise.all([pg.waitForURL((u) => !u.search, { timeout: 8000 }).catch(() => {}), pg.click('#syncBody [data-action="sync-login"]')]); // Kennungen sind fest eingetragen
   return pg.waitForFunction(() => window.__app && window.__app.syncState.s === 'ok', null, { timeout: 8000 }).then(() => true, () => false);
 }
 const pts = (pg) => pg.evaluate(() => window.__app.data.punkte.map((p) => ({ id: p.id, n: p.notizen, t: p.titel, s: p.unterpunkte.map((u) => u.text) })));

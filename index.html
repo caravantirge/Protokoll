@@ -428,7 +428,7 @@ dialog.popover .grabber{display:none}
    OneDrive des Nutzers. Nie auf einem fremden Server.
    ===================================================================== */
 const APP_ID = 'besprechungsprotokoll';
-const APP_VERSION = '4.2';
+const APP_VERSION = '4.3';
 const DATA_VERSION = 2;
 const KEY = 'bprot.v1.data', SNAP_KEY = 'bprot.v1.snapshots', PREF_KEY = 'bprot.v1.prefs';
 
@@ -646,7 +646,7 @@ function maybeAutoSnapshot() {
    Anmeldung: OAuth 2.0 mit PKCE direkt bei Microsoft – kein Server, keine
    Bibliothek. Gespeichert wird in OneDrive → Apps → Besprechungsprotokoll.
    ===================================================================== */
-const MS_DEFAULT = { clientId: '', tenant: '' }; // nach der Registrierung hier eintragen (öffentliche Kennungen, kein Geheimnis)
+const MS_DEFAULT = { clientId: 'adf1de30-7d1a-42c2-919f-db181542b84a', tenant: '00a5fefc-9ef1-4cd9-8f25-037d5681c905' }; // App-Registrierung „Besprechungsprotokoll“ (öffentliche Kennungen, kein Geheimnis)
 const SYNC_KEY = 'bprot.v1.sync', PKCE_KEY = 'bprot.v1.pkce';
 const MS_SCOPES = 'openid profile offline_access User.Read Files.ReadWrite';
 const GRAPH = 'https://graph.microsoft.com/v1.0';
@@ -831,7 +831,7 @@ function applyResult(result) {
   else render();
 }
 async function syncNow({ interactive = false } = {}) {
-  if (!signedIn()) { setSync(syncConfigured() ? 'login' : 'off'); return; }
+  if (!signedIn()) { setSync(syncConfigured() && sync.user ? 'login' : 'off'); return; }
   if (syncBusy) { syncAgain = true; return; }
   if (!navigator.onLine) { setSync('offline'); return; }
   syncBusy = true; setSync('busy');
@@ -2448,7 +2448,7 @@ function init() {
   if (dirty) flushSave(); // übernommene Daten aus älterer Version gleich sichern
   registerSW();
   updateWakeLock();
-  if (syncConfigured()) setSync(signedIn() ? 'ok' : 'login');
+  if (syncConfigured()) setSync(signedIn() ? 'ok' : sync.user ? 'login' : 'off'); // „Anmelden“ erst mahnen, wenn man schon einmal angemeldet war
   handleRedirect().then((handled) => { if (!handled) syncNow(); });
   window.__app = { get data() { return data; }, parseList, buildCSV, buildText, buildPdf, mailFor, mailSelection, exportSelection, flushSave, mergeData, syncNow, normalizeData, get syncState() { return syncState; } };
 }

@@ -16,7 +16,7 @@ Dieses Repository ist öffentlich und enthält nur die App. **Firmeninternes geh
 
 Netlify Drop eignet sich nicht: Seiten, die ohne Konto hochgeladen werden, löscht Netlify wieder.
 
-## 2. Bei Microsoft registrieren (einmalig, ca. 10 Minuten)
+## 2. Bei Microsoft registrieren (erledigt – Kennungen sind in der App fest eingetragen)
 
 Dafür brauchst du die Rolle *Anwendungsadministrator* oder *Cloudanwendungsadministrator*. Alternativ reicht es, wenn bei euch normale Benutzer Apps registrieren dürfen.
 
@@ -37,7 +37,7 @@ Die beiden Kennungen sind keine Geheimnisse. Du kannst sie Claude geben, dann we
 
 1. Die Adresse in **Safari** öffnen → Teilen-Symbol → **„Zum Home-Bildschirm“**. Den Schalter „Als Web-App öffnen“ eingeschaltet lassen.
 2. Die App **nur noch über das Home-Bildschirm-Symbol** öffnen. Sie hat einen eigenen Speicher, getrennt von Safari.
-3. **„…“ → iPhone & iPad abgleichen** → (Kennungen eintragen) → **Mit Microsoft anmelden**.
+3. **„…“ → iPhone & iPad abgleichen** → **Mit Microsoft anmelden**.
 4. Auf dem zweiten Gerät genauso. Danach haben beide denselben Stand.
 5. Offline testen: Unter „…“ sollte bei „Offline nutzbar“ „Ja“ stehen. Dann den Flugmodus einschalten, die App schließen und wieder öffnen.
 
