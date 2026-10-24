@@ -5,6 +5,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
 
 const require = createRequire(import.meta.url);
 let playwright;
@@ -111,7 +112,16 @@ ok(await page.locator('#v-detail .proposal .offen-box').isVisible(), 'Vorschlag 
 await page.click('#v-detail .disc');
 ok((await data()).punkte[0].besprochen, '„Als besprochen markieren“');
 await page.click('#ownerChips >> text=Carla Probe');
-ok((await data()).punkte[0].verantwortlich === 'Carla Probe' && (await data()).punkte[0].status === 'arbeit', 'Verantwortliche gesetzt → Status springt auf „In Bearbeitung“');
+ok((await data()).punkte[0].verantwortliche.join() === 'Carla Probe' && (await data()).punkte[0].status === 'arbeit', 'Verantwortliche gesetzt → Status springt auf „In Bearbeitung“');
+await page.click('#ownerChips >> text=Anna Beispiel');
+ok((await data()).punkte[0].verantwortliche.join() === 'Carla Probe,Anna Beispiel', 'Mehrere Verantwortliche gleichzeitig');
+await page.click('#ownerChips >> text=Anna Beispiel');
+await page.click('#ownerChips >> text=Anna Beispiel');
+ok((await data()).punkte[0].verantwortliche.join() === 'Carla Probe,Anna Beispiel', 'Person ab- und wieder anwählen');
+ok(await page.$eval('#f-titel', (e) => getComputedStyle(e).backgroundColor !== 'rgba(0, 0, 0, 0)' && getComputedStyle(e).boxShadow !== 'none') && (await page.textContent('.d-label')) === 'Thema', 'Thema ist als Eingabefeld erkennbar (Feld mit Rahmen und Beschriftung)');
+ok(await page.locator('#fristBox').isHidden(), 'Frist ist zunächst zugeklappt');
+await page.click('label:has(#fristToggle)');
+ok(await page.locator('#fristBox').isVisible(), 'Schalter „Frist“ klappt Datum und Schnellwahl auf');
 await page.click('#fristChips >> text=+2 Wochen');
 ok(!!(await data()).punkte[0].frist, 'Frist per Schnellwahl');
 await page.click('#subs [data-action="add-sub"]');
@@ -153,7 +163,7 @@ await page.click('[data-action="back"]');
 await page.waitForTimeout(400);
 ok(await page.locator('#v-list').isVisible(), '„‹ Themen“ führt zur Liste');
 const row1 = await page.locator('.pt-row').first().textContent();
-ok(row1.includes('In Bearbeitung') && row1.includes('Carla Probe') && row1.includes('1/3 erledigt'), 'Liste zeigt Status, Verantwortliche und Fortschritt');
+ok(row1.includes('In Bearbeitung') && row1.includes('Carla Probe, Anna Beispiel') && row1.includes('1/3 erledigt'), 'Liste zeigt Status, beide Verantwortliche und Fortschritt');
 await page.locator('.pt-row').nth(3).locator('.tick').click();
 ok((await page.textContent('#progressText')).startsWith('3 von 14 besprochen'), 'Kreis in der Liste markiert „besprochen“ (3 von 14)');
 
@@ -163,6 +173,8 @@ ok(await page.locator('.pt-row').count() === 1, 'Filter „In Bearbeitung“ →
 await page.click('[data-action="filter-status"][data-value="alle"]');
 await page.selectOption('#fPerson', 'Carla Probe');
 ok(await page.locator('.pt-row').count() === 1, 'Filter „Carla Probe“ → 1 Thema');
+await page.selectOption('#fPerson', 'Anna Beispiel');
+ok(await page.locator('.pt-row').count() === 1, 'Filter „Anna Beispiel“ findet das gemeinsame Thema');
 await page.selectOption('#fPerson', '__niemand');
 ok(await page.locator('.pt-row').count() === 13, 'Filter „Ohne Verantwortlichen“ → 13 Themen');
 await page.selectOption('#fPerson', 'alle');
@@ -181,10 +193,10 @@ console.log('\n7) Gespeichert nach Neuladen');
 await page.reload();
 await page.waitForTimeout(300);
 let d = await data();
-ok(d.punkte.length === 14 && d.punkte[0].notizen.includes('äöü') && d.punkte[0].verantwortlich === 'Carla Probe' && d.punkte[0].unterpunkte.length === 3 && d.meeting.personen.length === 3, 'Alle Eingaben nach Neuladen vorhanden');
+ok(d.punkte.length === 14 && d.punkte[0].notizen.includes('äöü') && d.punkte[0].verantwortliche.length === 2 && d.punkte[0].unterpunkte.length === 3 && d.meeting.personen.length === 3, 'Alle Eingaben nach Neuladen vorhanden');
 
 console.log('\n8) Export: Auswahl, E-Mail, Excel, PDF');
-await page.evaluate(() => { const d = window.__app.data; d.punkte[2].verantwortlich = 'Carla Probe'; d.punkte[2].status = 'arbeit'; d.punkte[3].verantwortlich = 'Ben Muster'; d.punkte[3].status = 'arbeit'; });
+await page.evaluate(() => { const d = window.__app.data; d.punkte[2].verantwortliche = ['Carla Probe']; d.punkte[2].status = 'arbeit'; d.punkte[3].verantwortliche = ['Ben Muster']; d.punkte[3].status = 'arbeit'; });
 await page.click('[data-action="open-share"]');
 await page.waitForTimeout(500);
 await page.click('#dlg-share [data-action="ex-status"][data-value="offen"]');
@@ -198,9 +210,12 @@ ok(mail.to === 'carla@example.com' && mail.body.startsWith('Hallo Carla,') && ma
 ok(!mail.body.includes('Rückstau'), 'Gesprächsnotizen standardmäßig nicht in der Mail');
 ok(mail.url.startsWith('mailto:carla@example.com?subject=') && mail.body.includes('Daniel Demo'), 'mailto-Link mit Betreff und Grußzeile');
 await page.selectOption('#dlg-share select[data-pref="exPerson"]', 'alle');
-ok(await page.locator('#dlg-share .mail-row').count() === 2, '„E-Mail an jeden Verantwortlichen“: Carla und Ben');
+ok(await page.locator('#dlg-share .mail-row').count() === 3, '„E-Mail an jeden Verantwortlichen“: Anna, Ben und Carla');
+await page.click('#dlg-share .mail-row >> text=Anna Beispiel');
+mail = (await page.evaluate(() => window.__mails)).at(-1);
+ok(mail.to === 'anna@example.com' && mail.body.includes('gemeinsam mit Carla Probe'), 'E-Mail an Anna: gemeinsames Thema mit Hinweis „gemeinsam mit Carla Probe“');
 await page.click('#dlg-share .mail-row >> text=Ben Muster');
-mail = (await page.evaluate(() => window.__mails))[1];
+mail = (await page.evaluate(() => window.__mails)).at(-1);
 ok(mail.to === 'ben@example.com' && mail.subject.includes('Dein Thema'), 'E-Mail an Ben nur mit seinem Thema');
 let [dl] = await Promise.all([page.waitForEvent('download'), page.click('#dlg-share [data-action="csv"]')]);
 const csv = fs.readFileSync(await dl.path());
@@ -212,12 +227,17 @@ ok(csvText.includes('"✓ Liste offener Anträge erstellen') && !csvText.include
 const backupPath = path.join(OUT, 'backup-test.json');
 fs.copyFileSync(await dl.path(), backupPath);
 ok(JSON.parse(fs.readFileSync(backupPath, 'utf8')).punkte.length === 14, 'JSON-Backup vollständig');
-await page.evaluate(() => { window.print = () => {}; document.querySelector('#dlg-share [data-action="print"]').click(); });
-await page.emulateMedia({ media: 'print' });
-await page.pdf({ path: path.join(OUT, 'druck-nach-person.pdf'), format: 'A4', printBackground: true, preferCSSPageSize: true });
-await page.emulateMedia({ media: 'screen' });
-const printed = await page.textContent('#print');
-ok(printed.includes('Carla Probe (2)') && printed.includes('Ben Muster (1)') && printed.includes('☑'), 'PDF: nach Person gegliedert, Unterpunkte mit Kästchen');
+const pdfB64 = await page.evaluate(() => { const b = window.__app.buildPdf(); let s = ''; b.forEach((x) => { s += String.fromCharCode(x); }); return btoa(s); });
+const pdfPath = path.join(OUT, 'themen-nach-person.pdf');
+fs.writeFileSync(pdfPath, Buffer.from(pdfB64, 'base64'));
+const pdfText = execFileSync('pdftotext', ['-layout', pdfPath, '-']).toString('utf8');
+ok(pdfText.includes('Test-Runde Werkstatt') && pdfText.includes('Carla Probe (2)') && pdfText.includes('Anna Beispiel (1)') && pdfText.includes('Ben Muster (1)'), 'PDF-Datei: echtes PDF, nach Person gegliedert (gemeinsames Thema bei beiden)');
+ok(pdfText.includes('Anträge') && !pdfText.includes('Rückstau') && pdfText.includes('Seite 1 von'), 'PDF: Umlaute korrekt, Notizen nur auf Wunsch, Seitenzahlen');
+const [pdfDl] = await Promise.all([page.waitForEvent('download'), page.click('#dlg-share [data-action="pdf"]')]);
+ok(pdfDl.suggestedFilename().endsWith('.pdf'), '„PDF erstellen“ liefert eine Datei (' + pdfDl.suggestedFilename() + ')');
+
+await page.keyboard.press('Escape');
+await page.waitForTimeout(400);
 
 console.log('\n9) Alles löschen & Backup laden');
 await page.click('[data-action="open-more"]');
@@ -409,6 +429,20 @@ await B.pg.click('[data-action="back"]');
 await B.pg.click('[data-action="open-share"]'); await B.pg.waitForTimeout(600);
 await B.pg.screenshot({ path: path.join(OUT, '21-iphone-export.png') });
 ok(await B.pg.$eval('#dlg-share', (x) => x.getBoundingClientRect().bottom >= window.innerHeight - 2), 'iPhone: Export öffnet als Blatt von unten');
+ok(await B.pg.evaluate(() => getComputedStyle(document.body).overflow === 'hidden'), 'iPhone: Hintergrund scrollt nicht mit, solange ein Fenster offen ist');
+await B.pg.mouse.click(5, 5); await B.pg.waitForTimeout(600);
+await B.pg.click('[data-action="open-more"]'); await B.pg.waitForTimeout(600);
+const scrollBefore = await B.pg.evaluate(() => window.scrollY);
+await B.pg.evaluate(async () => { // mit dem Finger im Inhalt nach unten ziehen (Inhalt steht ganz oben)
+  const body = document.querySelector('#dlg-more .dlg-body'), r = body.getBoundingClientRect(), x = r.left + 60, y0 = r.top + 80;
+  const tch = (y) => new Touch({ identifier: 1, target: body, clientX: x, clientY: y });
+  body.dispatchEvent(new TouchEvent('touchstart', { touches: [tch(y0)], bubbles: true, cancelable: true }));
+  for (let i = 1; i <= 6; i++) { await new Promise((r) => setTimeout(r, 14)); body.dispatchEvent(new TouchEvent('touchmove', { touches: [tch(y0 + i * 45)], bubbles: true, cancelable: true })); }
+  body.dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: [tch(y0 + 270)], bubbles: true, cancelable: true }));
+});
+await B.pg.waitForTimeout(700);
+ok(await B.pg.$eval('#dlg-more', (x) => !x.open), 'iPhone: „…“-Fenster lässt sich aus dem Inhalt nach unten wegziehen');
+ok((await B.pg.evaluate(() => window.scrollY)) === scrollBefore && !(await B.pg.evaluate(() => document.documentElement.classList.contains('modal-open'))), 'iPhone: Hintergrund hat sich dabei nicht bewegt und ist wieder frei');
 ok(A.errs.length === 0 && B.errs.length === 0, 'Keine Fehler beim Abgleich' + (A.errs.concat(B.errs).length ? ': ' + A.errs.concat(B.errs).join(' | ') : ''));
 await A.ctx.close(); await B.ctx.close();
 

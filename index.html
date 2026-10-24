@@ -202,8 +202,9 @@ input.switch:checked::after{transform:translateX(20px)}
 /* ---------- Thema ---------- */
 .detail{max-width:760px;margin:0 auto;touch-action:pan-y pinch-zoom;will-change:transform}
 .d-eyebrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
-.d-title{display:block;width:100%;padding:0;border:0;background:transparent;font-size:1.55rem;font-weight:700;line-height:1.25;letter-spacing:-.015em;resize:none;overflow:hidden;color:var(--text)}
-.d-title:focus{outline:none}
+.d-title{display:block;width:100%;min-height:58px;padding:13px 16px;border:0;border-radius:var(--radius);background:var(--surface);box-shadow:inset 0 0 0 1px var(--sep);transition:box-shadow .2s;font-size:1.55rem;font-weight:700;line-height:1.25;letter-spacing:-.015em;resize:none;overflow:hidden;color:var(--text)}
+.d-title:focus{outline:none;box-shadow:inset 0 0 0 2px var(--blue)}
+.d-label{display:flex;justify-content:space-between;align-items:baseline;font-size:.8rem;font-weight:600;color:var(--muted);margin:4px 4px 6px}
 .proposal{margin-top:16px;padding:14px 16px;border-radius:var(--radius);background:var(--fill-2)}
 .proposal .lab{display:block;font-size:.78rem;font-weight:600;color:var(--muted);margin-bottom:3px}
 .proposal .txt{white-space:pre-wrap;overflow-wrap:anywhere}
@@ -222,8 +223,6 @@ input.switch:checked::after{transform:translateX(20px)}
 .hint{display:flex;gap:6px;align-items:center;margin:8px 4px 0;font-size:.85rem;color:var(--orange)}
 .hint .ic{width:1em;height:1em}
 .date-hint{margin:7px 4px 0;font-size:.82rem;color:var(--muted)}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
-@media (max-width:640px){.grid2{grid-template-columns:1fr}}
 .notes-ta{min-height:120px}
 
 /* ---------- Dialoge / Blätter ---------- */
@@ -237,7 +236,8 @@ dialog.wide{width:min(1100px,calc(100vw - 24px))}
 .dlg-head h2{font-size:1.02rem;font-weight:600;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dlg-head .r{justify-self:end}.dlg-head .l{justify-self:start}
 .grabber{position:absolute;top:5px;left:50%;width:36px;height:5px;margin-left:-18px;border-radius:3px;background:var(--gray-dot)}
-.dlg-body{padding:20px;overflow:auto;-webkit-overflow-scrolling:touch}
+.dlg-body{padding:20px;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+html.modal-open,html.modal-open body{overflow:hidden}
 .dlg-body>.sec:first-child{margin-top:0}
 dialog.popover{inset:auto;top:calc(var(--topbar-h,56px) + 6px);right:max(12px,env(safe-area-inset-right));margin:0;width:min(420px,calc(100vw - 24px));max-height:calc(100dvh - var(--topbar-h,56px) - 24px);border-radius:18px;background:var(--material);-webkit-backdrop-filter:blur(var(--mat-blur,30px)) saturate(1.8);backdrop-filter:blur(var(--mat-blur,30px)) saturate(1.8);box-shadow:0 18px 50px rgba(0,0,0,.2),0 0 0 .5px var(--sep)}
 dialog.popover .group{background:var(--mat-surface)}
@@ -297,7 +297,7 @@ dialog.popover .grabber{display:none}
   dialog.popover{background:var(--sheet-bg);-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:0 -10px 40px rgba(0,0,0,.18)}
   dialog.popover .group{background:var(--sheet-surface)}
   dialog.popover .grabber{display:block}
-  dialog.popover .dlg-head{padding-top:18px}
+  dialog.popover .dlg-head{padding-top:18px;touch-action:none;cursor:grab}
   .dlg-body{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
   #dlg-choice{inset:0;margin:auto;width:min(320px,calc(100vw - 40px));border-radius:16px}
 }
@@ -318,38 +318,6 @@ dialog.popover .grabber{display:none}
   .btn:active,.chip:active{transform:none}
 }
 
-/* ---------- Druck ---------- */
-#print{display:none}
-@media print{
-  @page{size:A4;margin:15mm 14mm 16mm 18mm}
-  html{font-size:10pt!important}
-  body{background:#fff!important;color:#000!important;min-height:0}
-  body>*:not(#print){display:none!important}
-  #print{display:block!important}
-}
-.pr-doc{font-family:-apple-system,"Helvetica Neue",Helvetica,Arial,sans-serif;color:#1c1c1e;font-size:10pt;line-height:1.4;letter-spacing:0}
-.pr-kicker{font-size:8pt;letter-spacing:.06em;text-transform:uppercase;color:#86868b;font-weight:600}
-.pr-doc h1{font-size:18pt;font-weight:700;letter-spacing:-.01em;margin:3pt 0 6pt}
-.pr-sel{font-size:9.5pt;color:#3a3a3c;padding-bottom:8pt;border-bottom:.5pt solid #c7c7cc}
-.pr-h2{font-size:12pt;font-weight:700;margin:16pt 0 6pt;break-after:avoid}
-.pr-table{width:100%;border-collapse:collapse;font-size:9pt;margin-top:4pt}
-.pr-table th{text-align:left;font-weight:600;color:#86868b;font-size:8pt;border-bottom:.8pt solid #1c1c1e;padding:4pt 5pt}
-.pr-table td{border-bottom:.5pt solid #d1d1d6;padding:5pt;vertical-align:top;overflow-wrap:anywhere}
-.pr-table td.nw{white-space:nowrap}
-.pr-table tr{break-inside:avoid}
-.pr-topic{padding:8pt 0 7pt;border-top:.5pt solid #d1d1d6;break-inside:avoid}
-.pr-th{display:flex;gap:8pt;align-items:baseline}
-.pr-nr{font-weight:700;min-width:7mm}
-.pr-tt{flex:1;font-weight:700;font-size:10.5pt;white-space:pre-wrap}
-.pr-st{font-size:8.5pt;font-weight:600;white-space:nowrap}
-.pr-meta{margin:2pt 0 0 calc(7mm + 8pt);font-size:8.5pt;color:#6e6e73}
-.pr-block{margin:4pt 0 0 calc(7mm + 8pt)}
-.pr-l{font-size:8pt;color:#86868b;font-weight:600}
-.pr-v{white-space:pre-wrap;overflow-wrap:anywhere}
-.pr-offen{margin-top:2pt;padding:2pt 6pt;border-radius:3pt;background:#fff6d6;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.pr-subs{list-style:none;margin:2pt 0 0;padding:0}
-.pr-subs li{padding-left:14pt;text-indent:-14pt}
-.pr-foot{margin-top:16pt;padding-top:5pt;border-top:.5pt solid #d1d1d6;font-size:8pt;color:#86868b}
 </style>
 </head>
 <body>
@@ -387,7 +355,6 @@ dialog.popover .grabber{display:none}
 </main>
 
 <input type="file" id="fileJson" hidden>
-<div id="print"></div>
 <div id="toasts" aria-live="polite"></div>
 <div id="scrim" hidden></div>
 
@@ -457,7 +424,7 @@ dialog.popover .grabber{display:none}
    OneDrive des Nutzers. Nie auf einem fremden Server.
    ===================================================================== */
 const APP_ID = 'besprechungsprotokoll';
-const APP_VERSION = '4.0';
+const APP_VERSION = '4.1';
 const DATA_VERSION = 2;
 const KEY = 'bprot.v1.data', SNAP_KEY = 'bprot.v1.snapshots', PREF_KEY = 'bprot.v1.prefs';
 
@@ -496,7 +463,7 @@ function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTi
 
 /* ---------- Datenmodell ---------- */
 // Besprechung mit Personen; darin Themen. Jedes Thema: Text, Vorschlag, Unterpunkte,
-// verantwortliche Person, Frist, Status (offen → in Bearbeitung → erledigt) und „besprochen“.
+// verantwortliche Personen (eine oder mehrere), Frist, Status (offen → in Bearbeitung → erledigt) und „besprochen“.
 function emptyMeeting() {
   return { titel: '', datum: '', ort: '', absender: '', personen: [], notizen: '', aktualisiert: 0 };
 }
@@ -504,7 +471,7 @@ function emptyData() {
   return { app: APP_ID, version: DATA_VERSION, id: uid(), meeting: emptyMeeting(), punkte: [], geloescht: {}, meta: { erstellt: new Date().toISOString(), geaendert: null, letztesBackup: null, reihenfolge: 0 } };
 }
 function newPoint(over = {}) {
-  return Object.assign({ id: uid(), titel: '', loesung: '', offen: '', notizen: '', unterpunkte: [], verantwortlich: '', frist: '', wichtig: false, status: 'offen', besprochen: false, kategorie: 'Sonstiges', herkunft: 'Werkstatt', urspNr: null, ergaenzt: false, aktualisiert: 0 }, over);
+  return Object.assign({ id: uid(), titel: '', loesung: '', offen: '', notizen: '', unterpunkte: [], verantwortliche: [], frist: '', wichtig: false, status: 'offen', besprochen: false, kategorie: 'Sonstiges', herkunft: 'Werkstatt', urspNr: null, ergaenzt: false, aktualisiert: 0 }, over);
 }
 const newSub = (text = '') => ({ id: uid(), text, erledigt: false });
 function matchKategorie(raw) {
@@ -520,7 +487,9 @@ function normalizePoint(p) {
   if (!p || typeof p !== 'object') return n;
   if (typeof p.id === 'string' && p.id) n.id = p.id;
   n.titel = String(p.titel ?? p.kritik ?? '');
-  for (const k of ['loesung', 'offen', 'notizen', 'verantwortlich', 'frist']) if (p[k] != null) n[k] = String(p[k]);
+  for (const k of ['loesung', 'offen', 'notizen', 'frist']) if (p[k] != null) n[k] = String(p[k]);
+  const own = Array.isArray(p.verantwortliche) ? p.verantwortliche : names(p.verantwortlich); // Version 1–4: ein Textfeld
+  n.verantwortliche = own.map((x) => String(x).trim()).filter((x, i, a) => x && a.findIndex((y) => y.toLowerCase() === x.toLowerCase()) === i);
   if (Array.isArray(p.unterpunkte)) n.unterpunkte = p.unterpunkte.filter((u) => u && typeof u === 'object').map((u) => ({ id: typeof u.id === 'string' && u.id ? u.id : uid(), text: String(u.text || ''), erledigt: !!u.erledigt }));
   else if (p.beschluss && String(p.beschluss).trim()) n.unterpunkte = String(p.beschluss).split(/\n+/).map((t) => t.replace(/^\s*[-–•*]\s*/, '').trim()).filter(Boolean).map((t) => newSub(t)); // aus Version 1
   if (p.kriterium && String(p.kriterium).trim()) n.notizen = (n.notizen ? n.notizen + '\n' : '') + 'Erledigt, wenn: ' + String(p.kriterium).trim();
@@ -530,7 +499,7 @@ function normalizePoint(p) {
   if (STATUS.includes(p.status)) { n.status = p.status; n.besprochen = !!p.besprochen; }
   else { // Status aus Version 1 übertragen
     n.besprochen = p.status === 'besprochen' || p.status === 'erledigt';
-    n.status = p.status === 'erledigt' ? 'erledigt' : (p.status === 'besprochen' && (n.verantwortlich || n.unterpunkte.length)) ? 'arbeit' : 'offen';
+    n.status = p.status === 'erledigt' ? 'erledigt' : (p.status === 'besprochen' && (n.verantwortliche.length || n.unterpunkte.length)) ? 'arbeit' : 'offen';
   }
   n.ergaenzt = !!p.ergaenzt;
   n.urspNr = p.urspNr != null && p.urspNr !== '' && Number.isFinite(+p.urspNr) ? +p.urspNr : null;
@@ -552,7 +521,7 @@ function normalizeData(raw) {
   const seen = new Set();
   d.punkte = pts.map((p) => { const n = normalizePoint(p); if (seen.has(n.id)) n.id = uid(); seen.add(n.id); return n; });
   // Verantwortliche, die noch nicht als Person angelegt sind, ergänzen
-  for (const p of d.punkte) if (p.verantwortlich.trim() && !d.meeting.personen.some((x) => x.name.toLowerCase() === p.verantwortlich.trim().toLowerCase())) d.meeting.personen.push({ id: uid(), name: p.verantwortlich.trim(), email: '' });
+  for (const p of d.punkte) for (const v of p.verantwortliche) if (!d.meeting.personen.some((x) => x.name.toLowerCase() === v.toLowerCase())) d.meeting.personen.push({ id: uid(), name: v, email: '' });
   if (raw.meta && typeof raw.meta === 'object') { for (const k of ['erstellt', 'geaendert', 'letztesBackup']) if (typeof raw.meta[k] === 'string') d.meta[k] = raw.meta[k]; d.meta.reihenfolge = +raw.meta.reihenfolge || 0; }
   if (typeof raw.id === 'string' && raw.id) d.id = raw.id;
   if (raw.geloescht && typeof raw.geloescht === 'object') for (const [k, v] of Object.entries(raw.geloescht)) if (Number.isFinite(+v)) d.geloescht[k] = +v;
@@ -566,6 +535,7 @@ const PREF_DEFAULTS = { theme: 'auto', scale: 1, wake: true, view: 'list', focus
 let search = '';
 let reorder = false;
 let editProposal = false;
+const fristOpen = new Set(); // Themen, bei denen „Frist“ eingeschaltet, aber noch kein Datum gewählt ist
 let storageOk = true;
 
 function loadPrefs() { try { return Object.assign({}, PREF_DEFAULTS, JSON.parse(localStorage.getItem(PREF_KEY)) || {}); } catch (e) { return Object.assign({}, PREF_DEFAULTS); } }
@@ -1003,6 +973,7 @@ function openDlg(d, trigger) {
   if (d.classList.contains('closing')) { d.classList.remove('closing'); d.close(); }
   const wasClosed = !d.open;
   if (wasClosed) { d.style.opacity = '0'; d.showModal(); }
+  updateLock();
   if (st.kind === 'popover' && trigger) {
     const r = trigger.getBoundingClientRect(), dr = d.getBoundingClientRect();
     d.style.transformOrigin = `${r.left + r.width / 2 - dr.left}px ${r.top + r.height / 2 - dr.top}px`;
@@ -1024,34 +995,51 @@ function closeDlg(d, { velocity } = {}) {
   d.close();                      // sofort: Eingaben gehen zurück an die App
   d.classList.add('closing');     // nur noch die Ausblend-Bewegung
   d.show();
-  const end = () => { d.ignoreClose = (d.ignoreClose || 0) + 1; d.close(); d.classList.remove('closing'); d.style.transform = ''; updateScrim(); };
+  updateLock();
+  const end = () => { d.ignoreClose = (d.ignoreClose || 0) + 1; d.close(); d.classList.remove('closing'); d.style.transform = ''; updateScrim(); updateLock(); };
   if (reducedMotion.matches) { d.style.opacity = '0'; setTimeout(end, 200); updateScrim(); return; }
   st.spring.to(closedValue(st), { damping: 1, response: st.kind === 'sheet' ? 0.32 : 0.22, velocity }, end);
 }
 // Blätter lassen sich am Kopf nach unten wegziehen – 1:1, mit Schwung und Gummiband nach oben
 function enableSheetDrag(d) {
-  const head = d.querySelector('.dlg-head'); if (!head) return;
-  head.addEventListener('pointerdown', (e) => {
-    if (e.button || e.target.closest('button,input,select,textarea,a')) return;
-    const st = dlgState(d); if (st.kind !== 'sheet' || d.classList.contains('closing')) return;
+  // Blätter folgen dem Finger 1:1 – am Griff oben und (wie bei iOS) im Inhalt, wenn dieser ganz oben ist
+  const head = d.querySelector('.dlg-head'), body = d.querySelector('.dlg-body, .rb-body');
+  const begin = (y0Client, t0) => {
+    const st = dlgState(d); if (st.kind !== 'sheet' || d.classList.contains('closing')) return null;
     st.spring.stop();
+    const y0 = st.spring.x, hist = [{ p: y0, t: t0 }];
+    return {
+      move(yClient, t) { const raw = y0 + (yClient - y0Client); const y = raw < 0 ? rubberband(raw, st.H) : raw; st.spring.x = y; applyDlg(d, st, y); hist.push({ p: raw, t }); if (hist.length > 20) hist.shift(); },
+      end() { const v = velocityOf(hist), y = st.spring.x; if (v > 300 || (v > -300 && y + project(v) > st.H * 0.4)) closeDlg(d, { velocity: v }); else st.spring.to(0, { damping: 0.8, response: 0.3, velocity: v }); },
+    };
+  };
+  if (head) head.addEventListener('pointerdown', (e) => {
+    if (e.button || e.target.closest('button,input,select,textarea,a')) return;
+    const g = begin(e.clientY, e.timeStamp); if (!g) return;
     try { head.setPointerCapture(e.pointerId); } catch (_) { /* egal */ }
-    const y0 = st.spring.x, startY = e.clientY, hist = [{ p: y0, t: e.timeStamp }];
-    const move = (ev) => {
-      const raw = y0 + (ev.clientY - startY);
-      const y = raw < 0 ? rubberband(raw, st.H) : raw;
-      st.spring.x = y; applyDlg(d, st, y);
-      hist.push({ p: raw, t: ev.timeStamp }); if (hist.length > 20) hist.shift();
-    };
-    const up = () => {
-      head.removeEventListener('pointermove', move); head.removeEventListener('pointerup', up); head.removeEventListener('pointercancel', up);
-      const v = velocityOf(hist), y = st.spring.x;
-      const commit = v > 300 || (v > -300 && y + project(v) > st.H * 0.4);
-      if (commit) closeDlg(d, { velocity: v });
-      else st.spring.to(0, { damping: 0.8, response: 0.3, velocity: v });
-    };
+    const move = (ev) => g.move(ev.clientY, ev.timeStamp);
+    const up = () => { head.removeEventListener('pointermove', move); head.removeEventListener('pointerup', up); head.removeEventListener('pointercancel', up); g.end(); };
     head.addEventListener('pointermove', move); head.addEventListener('pointerup', up); head.addEventListener('pointercancel', up);
   });
+  if (body) {
+    let t = null;
+    body.addEventListener('touchstart', (e) => { t = e.touches.length === 1 ? { y: e.touches[0].clientY, x: e.touches[0].clientX, top: body.scrollTop <= 0, g: null, dead: false } : null; }, { passive: true });
+    body.addEventListener('touchmove', (e) => {
+      if (!t || t.dead) return;
+      const y = e.touches[0].clientY, dy = y - t.y, dx = e.touches[0].clientX - t.x;
+      if (!t.g) {
+        if (Math.abs(dy) < 8 && Math.abs(dx) < 8) return;
+        if (!t.top || dy <= 0 || Math.abs(dx) > Math.abs(dy) || body.scrollTop > 0) { t.dead = true; return; } // normal scrollen
+        t.g = begin(y, e.timeStamp); if (!t.g) { t.dead = true; return; }
+      }
+      e.preventDefault(); t.g.move(y, e.timeStamp);
+    }, { passive: false });
+    const done = () => { if (t && t.g) t.g.end(); t = null; };
+    body.addEventListener('touchend', done); body.addEventListener('touchcancel', done);
+  }
+}
+function updateLock() { // solange ein Fenster offen ist, scrollt der Hintergrund nicht mit
+  document.documentElement.classList.toggle('modal-open', $$('dialog').some((x) => x.open && !x.classList.contains('closing')));
 }
 
 /* ---------- Abfragen ---------- */
@@ -1060,10 +1048,12 @@ const nrOf = (id) => data.punkte.findIndex((p) => p.id === id) + 1;
 const personen = () => data.meeting.personen;
 const samePerson = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
 const personByName = (n) => personen().find((x) => samePerson(x.name, n));
+const ownerText = (p) => p.verantwortliche.join(', ');
+const isOwner = (p, n) => p.verantwortliche.some((v) => samePerson(v, n));
 function matchesPerson(p, who) {
   if (who === 'alle') return true;
-  if (who === NOBODY) return !p.verantwortlich.trim();
-  return samePerson(p.verantwortlich, who);
+  if (who === NOBODY) return !p.verantwortliche.length;
+  return p.verantwortliche.some((v) => samePerson(v, who));
 }
 function matchesFilter(p) {
   if (prefs.fStatus !== 'alle' && p.status !== prefs.fStatus) return false;
@@ -1074,7 +1064,7 @@ function matchesFilter(p) {
 function matchesSearch(p) {
   if (!search.trim()) return true;
   const q = norm(search.trim());
-  return [p.titel, p.loesung, p.offen, p.notizen, p.verantwortlich, p.kategorie, ...p.unterpunkte.map((u) => u.text)].some((t) => norm(t).includes(q));
+  return [p.titel, p.loesung, p.offen, p.notizen, ownerText(p), p.kategorie, ...p.unterpunkte.map((u) => u.text)].some((t) => norm(t).includes(q));
 }
 const filterActive = () => prefs.fStatus !== 'alle' || prefs.fPerson !== 'alle' || prefs.fKat !== 'alle';
 function counts() {
@@ -1186,7 +1176,7 @@ function renderCards() {
   const rows = list.map(({ p, nr }, i) => {
     const meta = [];
     if (p.status !== 'offen') meta.push(`<span class="st-inline status st-${p.status}">${STATUS_LABEL[p.status]}</span>`);
-    meta.push(p.verantwortlich.trim() ? esc(p.verantwortlich.trim()) : (p.status === 'arbeit' ? '<span class="miss">Wer?</span>' : ''));
+    meta.push(p.verantwortliche.length ? esc(ownerText(p)) : (p.status === 'arbeit' ? '<span class="miss">Wer?</span>' : ''));
     if (p.frist) meta.push('bis ' + esc(fmtDE(p.frist)));
     if (p.unterpunkte.length) meta.push(`${subDone(p)}/${p.unterpunkte.length} erledigt`);
     meta.push(esc(p.kategorie));
@@ -1212,7 +1202,7 @@ function renderCards() {
 }
 
 function personChipsHTML(p) {
-  return personen().map((x) => `<button class="chip" data-action="set-owner" data-id="${p.id}" data-value="${esc(x.name)}" aria-pressed="${samePerson(p.verantwortlich, x.name)}">${esc(x.name)}</button>`).join('') +
+  return personen().map((x) => `<button class="chip" data-action="set-owner" data-id="${p.id}" data-value="${esc(x.name)}" aria-pressed="${isOwner(p, x.name)}">${esc(x.name)}</button>`).join('') +
     `<button class="chip add" data-action="add-person" data-id="${p.id}">${ic('plus')}Person</button>`;
 }
 function fristOptions() {
@@ -1226,7 +1216,7 @@ function fristHint(p) {
   const rel = d === 0 ? 'heute' : d === 1 ? 'morgen' : d > 1 ? `in ${d} Tagen` : `vor ${-d} Tagen`;
   return `${fmtDate(p.frist)} · ${rel}`;
 }
-function ownerHint(p) { return p.status === 'arbeit' && !p.verantwortlich.trim() ? `<div class="hint">${ic('alert')}Wer kümmert sich darum?</div>` : ''; }
+function ownerHint(p) { return p.status === 'arbeit' && !p.verantwortliche.length ? `<div class="hint">${ic('alert')}Wer kümmert sich darum?</div>` : ''; }
 function subsHTML(p) {
   return p.unterpunkte.map((u) => `<div class="sub-row ${u.erledigt ? 'done' : ''}" data-sub="${u.id}">
       <button class="tick" data-action="toggle-sub" data-id="${p.id}" data-sub="${u.id}" aria-pressed="${u.erledigt}" aria-label="Unterpunkt erledigt">${tickSvg}</button>
@@ -1253,6 +1243,7 @@ function renderDetail() {
       <select class="pill" data-id="${p.id}" data-field="herkunft" aria-label="Herkunft">${HERKUNFT.map((h) => `<option ${p.herkunft === h ? 'selected' : ''}>${h}</option>`).join('')}</select>
       ${p.ergaenzt ? '<span class="muted" style="font-size:.85rem">Im Gespräch ergänzt</span>' : ''}
     </div>
+    <label class="d-label" for="f-titel">Thema</label>
     <textarea class="d-title" id="f-titel" rows="1" data-id="${p.id}" data-field="titel" placeholder="Worum geht es? (Thema, Kritik)">${esc(p.titel)}</textarea>
     ${prop}
     <button class="disc ${p.besprochen ? 'on' : ''}" data-action="toggle-besprochen" data-id="${p.id}"><span class="tick" aria-pressed="${p.besprochen}">${tickSvg}</span><span class="grow">${p.besprochen ? 'Im Gespräch besprochen' : 'Als besprochen markieren'}</span></button>
@@ -1264,14 +1255,13 @@ function renderDetail() {
     <div class="chips" id="ownerChips">${personChipsHTML(p)}</div>
     <div id="ownerHint">${ownerHint(p)}</div>
 
-    <div class="grid2">
-      <div><span class="label">Frist</span>
-        <div class="group"><input class="field-in" type="date" id="f-frist" data-id="${p.id}" data-field="frist" value="${esc(p.frist)}" aria-label="Frist"></div>
-        <div class="date-hint" id="fristHint">${esc(fristHint(p))}</div>
-        <div class="chips" id="fristChips" style="margin-top:10px">${fristChipsHTML(p)}</div>
-      </div>
-      <div><span class="label">&nbsp;</span>
-        <div class="group"><label class="row"><span class="grow">Wichtig</span><input type="checkbox" class="switch" data-id="${p.id}" data-field="wichtig" ${p.wichtig ? 'checked' : ''}></label></div>
+    <span class="label">Frist &amp; Wichtigkeit</span>
+    <div class="group">
+      <label class="row"><span class="grow">Wichtig</span><input type="checkbox" class="switch" data-id="${p.id}" data-field="wichtig" ${p.wichtig ? 'checked' : ''}></label>
+      <label class="row"><span class="grow">Frist${p.frist ? `<small id="fristHint">${esc(fristHint(p))}</small>` : '<small id="fristHint"></small>'}</span><input type="checkbox" class="switch" id="fristToggle" data-id="${p.id}" ${p.frist || fristOpen.has(p.id) ? 'checked' : ''} aria-label="Frist setzen"></label>
+      <div id="fristBox" ${p.frist || fristOpen.has(p.id) ? '' : 'hidden'}>
+        <input class="field-in" type="date" id="f-frist" data-id="${p.id}" data-field="frist" value="${esc(p.frist)}" aria-label="Datum der Frist">
+        <div class="chips" id="fristChips" style="padding:0 16px 14px">${fristChipsHTML(p)}</div>
       </div>
     </div>
 
@@ -1291,6 +1281,7 @@ function refreshDetailLive(p) {
   const oh = $('#ownerHint'); if (oh) oh.innerHTML = ownerHint(p);
   const fc = $('#fristChips'); if (fc) fc.innerHTML = fristChipsHTML(p);
   const fh = $('#fristHint'); if (fh) fh.textContent = fristHint(p);
+  const ft = $('#fristToggle'); if (ft) ft.checked = !!p.frist || fristOpen.has(p.id);
   const sl = $('#subLabel'); if (sl) sl.textContent = 'Unterpunkte' + (p.unterpunkte.length ? ` · ${subDone(p)} von ${p.unterpunkte.length} erledigt` : '');
 }
 
@@ -1404,8 +1395,8 @@ function deletePoint(id) {
   toast(`Thema ${nr} gelöscht`, { action: { label: 'Widerrufen', fn: () => { data.punkte.splice(Math.min(idx, data.punkte.length), 0, p); changed(); render(); } }, timeout: 9000 });
 }
 function setOwner(p, name) {
-  p.verantwortlich = samePerson(p.verantwortlich, name) ? '' : name;
-  if (p.verantwortlich && p.status === 'offen') { p.status = 'arbeit'; const g = $('#v-detail .seg-status'); if (g) { $$('button', g).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.value === p.status))); syncSeg(g); } }
+  if (isOwner(p, name)) p.verantwortliche = p.verantwortliche.filter((v) => !samePerson(v, name)); else p.verantwortliche.push(name);
+  if (p.verantwortliche.length && p.status === 'offen') { p.status = 'arbeit'; const g = $('#v-detail .seg-status'); if (g) { $$('button', g).forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.value === p.status))); syncSeg(g); } }
   changed(); refreshDetailLive(p);
 }
 function setStatus(p, s, el) {
@@ -1463,12 +1454,11 @@ function renderShare() {
       ${sw('exNotes', 'Gesprächsnotizen einschließen')}
     </div><p class="sec-f" id="exCount">${sel.length} ${sel.length === 1 ? 'Thema' : 'Themen'} ausgewählt</p></div>
     <div class="sec"><div class="group">
-      <button class="row action" data-action="print" ${dis}><span class="grow">PDF erstellen oder drucken</span></button>
+      <button class="row action" data-action="pdf" ${dis}><span class="grow">PDF erstellen<small>Danach sichern, drucken, per Mail oder AirDrop teilen</small></span></button>
       <button class="row action" data-action="mail-selection" ${dis}><span class="grow">Per E-Mail senden …</span></button>
       <button class="row action" data-action="copy-text" ${dis}><span class="grow">Text kopieren</span></button>
       <button class="row action" data-action="csv" ${dis}><span class="grow">Excel-Tabelle (CSV)</span></button>
-      <button class="row action" data-action="share-html" ${dis}><span class="grow">Als Datei teilen<small>Falls der Druckdialog nicht erscheint</small></span></button>
-    </div><p class="sec-f">Als PDF: im Druckdialog auf das Teilen-Symbol tippen → „In Dateien sichern“.</p></div>
+    </div></div>
     ${people.length ? `<div class="sec"><div class="sec-h">E-Mail an jeden Verantwortlichen</div><div class="group">
       ${people.map(({ x, n }) => `<button class="row mail-row" data-action="mail-person" data-name="${esc(x.name)}">${ic('mail')}<span class="grow">${esc(x.name)}<small>${n} ${n === 1 ? 'Thema' : 'Themen'}${x.email ? '' : ' · keine E-Mail-Adresse hinterlegt'}</small></span>${chev()}</button>`).join('')}
     </div><p class="sec-f">Jede Person bekommt nur ihre Themen – mit Unterpunkten zum Abhaken und der Bitte um Rückmeldung.</p></div>` : ''}
@@ -1761,11 +1751,12 @@ function syncImportControls() {
 
 /* ---------- Export: Text, E-Mail, CSV, Druck ---------- */
 const checkbox = (u) => (u.erledigt ? '[x] ' : '[ ] ');
-function topicText(p, nr, { notes, owner = true } = {}) {
+function topicText(p, nr, { notes, owner = true, forPerson = null } = {}) {
   const L = [];
   L.push(`${nr}. ${oneLine(p.titel) || 'Ohne Titel'}${p.wichtig ? '  (wichtig)' : ''}`);
   const meta = [STATUS_LABEL[p.status]];
-  if (owner) meta.push('Verantwortlich: ' + (p.verantwortlich.trim() || '–'));
+  if (owner) meta.push('Verantwortlich: ' + (ownerText(p) || '–'));
+  else if (forPerson && p.verantwortliche.length > 1) meta.push('gemeinsam mit ' + p.verantwortliche.filter((v) => !samePerson(v, forPerson)).join(', '));
   if (p.frist) meta.push('bis ' + fmtDate(p.frist));
   L.push('   ' + meta.join(' · '));
   if (p.loesung.trim()) L.push('   Vorschlag: ' + p.loesung.trim().replace(/\n/g, '\n   '));
@@ -1784,19 +1775,19 @@ function buildText(sel = exportSelection()) {
   const groups = prefs.exPerson === 'alle' ? groupByPerson(sel) : [[null, sel]];
   for (const [who, list] of groups) {
     if (who !== null) L.push('── ' + (who || 'Ohne Verantwortlichen') + ' (' + list.length + ') ──');
-    list.forEach(({ p, nr }) => { L.push(topicText(p, nr, { notes: prefs.exNotes, owner: who === null })); L.push(''); });
+    list.forEach(({ p, nr }) => { L.push(topicText(p, nr, { notes: prefs.exNotes, owner: who === null, forPerson: who || null })); L.push(''); });
   }
   return L.join('\n').trim() + '\n';
 }
 function groupByPerson(sel) {
   const map = new Map();
-  for (const x of sel) { const k = x.p.verantwortlich.trim(); const key = (personByName(k) || { name: k }).name; if (!map.has(key)) map.set(key, []); map.get(key).push(x); }
+  for (const x of sel) { const keys = x.p.verantwortliche.length ? x.p.verantwortliche : ['']; for (const k of keys) { const key = (personByName(k) || { name: k }).name; if (!map.has(key)) map.set(key, []); map.get(key).push(x); } } // ein Thema mit mehreren Verantwortlichen erscheint bei jedem
   return [...map.entries()].sort((a, b) => (a[0] ? 0 : 1) - (b[0] ? 0 : 1) || a[0].localeCompare(b[0], 'de'));
 }
 function mailFor(name, sel) {
   const m = data.meeting, pers = personByName(name), first = String(name || '').split(/\s+/)[0];
   const intro = `aus unserer Besprechung „${meetingLine()}“ ${sel.length === 1 ? 'liegt folgendes Thema' : `liegen folgende ${sel.length} Themen`} bei dir:`;
-  const body = [`Hallo ${first || 'zusammen'},`, '', intro, '', ...sel.map(({ p, nr }) => topicText(p, nr, { notes: prefs.exNotes, owner: false }) + '\n'),
+  const body = [`Hallo ${first || 'zusammen'},`, '', intro, '', ...sel.map(({ p, nr }) => topicText(p, nr, { notes: prefs.exNotes, owner: false, forPerson: name }) + '\n'),
     'Bitte gib mir zu jedem Thema kurz Rückmeldung – gern direkt hier in der Antwort: erledigte Unterpunkte mit [x] markieren, neue Schritte einfach ergänzen.', '', 'Danke und viele Grüße', m.absender || ''].join('\n').trim();
   const subject = `${sel.length === 1 ? 'Dein Thema' : 'Deine Themen'} aus ${meetingLine()}`;
   return { to: pers && pers.email ? pers.email : '', subject, body };
@@ -1809,7 +1800,7 @@ function mailSelection() {
 function openMail({ to, subject, body }) {
   const url = `mailto:${encodeURIComponent(to).replace(/%40/g, '@')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   if (window.__mailHook) { window.__mailHook({ to, subject, body, url }); return; } // für Tests
-  location.href = url;
+  const a = document.createElement('a'); a.href = url; a.rel = 'noopener'; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 1000);
 }
 function csvCell(v) {
   let s = String(v ?? '');
@@ -1819,57 +1810,170 @@ function csvCell(v) {
 function buildCSV(sel = exportSelection()) {
   const m = data.meeting;
   const head = ['Nr', 'Thema', 'Verantwortlich', 'Frist', 'Status', 'Besprochen', 'Unterpunkte', 'Erledigt', 'Vorschlag', 'Offen', 'Notizen', 'Kategorie', 'Herkunft', 'Wichtig', 'Besprechung', 'Datum'];
-  const rows = sel.map(({ p, nr }) => [nr, p.titel, p.verantwortlich, fmtDE(p.frist), STATUS_LABEL[p.status], p.besprochen ? 'ja' : 'nein',
+  const rows = sel.map(({ p, nr }) => [nr, p.titel, ownerText(p), fmtDE(p.frist), STATUS_LABEL[p.status], p.besprochen ? 'ja' : 'nein',
     p.unterpunkte.map((u) => (u.erledigt ? '✓ ' : '☐ ') + u.text).join('\n'), p.unterpunkte.length ? `${subDone(p)}/${p.unterpunkte.length}` : '', p.loesung, p.offen, prefs.exNotes ? p.notizen : '', p.kategorie, p.herkunft, p.wichtig ? 'ja' : '', m.titel, fmtDE(m.datum)]);
   return '﻿' + [head, ...rows].map((r) => r.map(csvCell).join(';')).join('\r\n') + '\r\n';
 }
 const pv = (s) => esc(String(s || '').trim());
-function prTopic(p, nr, showOwner) {
-  const meta = [STATUS_LABEL[p.status]];
-  if (showOwner) meta.push('Verantwortlich: ' + (p.verantwortlich.trim() || '–'));
-  if (p.frist) meta.push('bis ' + fmtDate(p.frist));
-  if (p.unterpunkte.length) meta.push(`${subDone(p)}/${p.unterpunkte.length} Unterpunkte erledigt`);
-  meta.push(p.kategorie); if (p.wichtig) meta.push('wichtig');
-  return `<div class="pr-topic">
-    <div class="pr-th"><span class="pr-nr">${nr}.</span><span class="pr-tt">${pv(p.titel) || '–'}</span><span class="pr-st">${p.besprochen ? 'besprochen' : ''}</span></div>
-    <div class="pr-meta">${esc(meta.join(' · '))}</div>
-    ${p.loesung.trim() || p.offen.trim() ? `<div class="pr-block"><span class="pr-l">Vorschlag</span><div class="pr-v">${pv(p.loesung)}</div>${p.offen.trim() ? `<div class="pr-offen"><b>Offen:</b> ${pv(p.offen)}</div>` : ''}</div>` : ''}
-    ${p.unterpunkte.length ? `<div class="pr-block"><span class="pr-l">Unterpunkte</span><ul class="pr-subs">${p.unterpunkte.map((u) => `<li>${u.erledigt ? '☑' : '☐'} ${pv(u.text) || '…'}</li>`).join('')}</ul></div>` : ''}
-    ${prefs.exNotes && p.notizen.trim() ? `<div class="pr-block"><span class="pr-l">Notizen</span><div class="pr-v">${pv(p.notizen)}</div></div>` : ''}
-  </div>`;
+/* ---------- PDF erzeugen (ohne Bibliothek) ----------
+   Erzeugt eine echte PDF-Datei mit den Standardschriften Helvetica/Helvetica-Bold
+   (WinAnsi-Kodierung: Umlaute, ß, „“, –, € …). Funktioniert auch dort, wo
+   window.print() nicht verfügbar ist (Home-Bildschirm-App auf dem iPhone). */
+const PDF_W = (() => {
+  // Zeichenbreiten (1/1000 em) für Zeichen 32–126 aus den Adobe-AFM-Dateien
+  const reg = [278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584];
+  const bold = [278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584];
+  const extra = { 'Ä': [667, 722], 'Ö': [778, 778], 'Ü': [722, 722], 'ä': [556, 556], 'ö': [556, 611], 'ü': [556, 611], 'ß': [611, 611], 'é': [556, 556], 'è': [556, 556], 'à': [556, 556], '€': [556, 556], '–': [556, 556], '—': [1000, 1000], '„': [333, 500], '“': [333, 500], '”': [333, 500], '‚': [222, 278], '‘': [222, 278], '’': [222, 278], '•': [350, 350], '…': [1000, 1000], '·': [278, 278], '°': [400, 400], '§': [556, 556], '×': [584, 584], '²': [333, 333], '³': [333, 333] };
+  return (ch, b) => { const c = ch.charCodeAt(0); if (c >= 32 && c <= 126) return (b ? bold : reg)[c - 32]; const e = extra[ch]; return e ? e[b ? 1 : 0] : 556; };
+})();
+const WIN = { '€': 0x80, '‚': 0x82, '„': 0x84, '…': 0x85, '‘': 0x91, '’': 0x92, '“': 0x93, '”': 0x94, '•': 0x95, '–': 0x96, '—': 0x97 };
+function pdfStr(t) { // Text → WinAnsi-Bytes als PDF-String
+  let out = '';
+  for (const ch of String(t)) {
+    let c = WIN[ch] ?? ch.charCodeAt(0);
+    if (c > 255 || (c < 32 && c !== 9)) c = 63; // nicht darstellbar → „?“
+    const s = String.fromCharCode(c);
+    out += s === '(' || s === ')' || s === '\\' ? '\\' + s : s;
+  }
+  return '(' + out + ')';
 }
-function buildPrint(sel = exportSelection()) {
-  const m = data.meeting;
-  const table = `<table class="pr-table"><thead><tr><th style="width:7mm">Nr.</th><th>Thema</th><th style="width:32mm">Verantwortlich</th><th style="width:21mm">Frist</th><th style="width:24mm">Status</th></tr></thead><tbody>
-    ${sel.map(({ p, nr }) => `<tr><td>${nr}</td><td>${p.wichtig ? '<b>!!</b> ' : ''}${esc(oneLine(p.titel))}</td><td>${pv(p.verantwortlich) || '–'}</td><td class="nw">${p.frist ? esc(fmtDE(p.frist)) : '–'}</td><td class="nw">${STATUS_LABEL[p.status]}</td></tr>`).join('')}</tbody></table>`;
+class Pdf {
+  constructor() { this.W = 595.28; this.H = 841.89; this.M = { l: 54, r: 48, t: 56, b: 60 }; this.pages = []; this.newPage(); }
+  get width() { return this.W - this.M.l - this.M.r; }
+  newPage() { this.ops = []; this.pages.push(this.ops); this.y = this.M.t; }
+  ensure(h) { if (this.y + h > this.H - this.M.b) this.newPage(); }
+  tw(t, size, bold) { let w = 0; for (const ch of String(t)) w += PDF_W(ch, bold); return (w * size) / 1000; }
+  wrap(text, width, size, bold) {
+    const lines = [];
+    for (const para of String(text || '').split('\n')) {
+      let line = '';
+      for (const word of para.split(/(\s+)/)) {
+        if (!word) continue;
+        const test = line + word;
+        if (this.tw(test.trimEnd(), size, bold) <= width || !line.trim()) {
+          if (this.tw(test.trim(), size, bold) > width && !line.trim()) { // überlanges Wort hart umbrechen
+            let part = '';
+            for (const ch of word) { if (this.tw(part + ch, size, bold) > width) { lines.push(part); part = ''; } part += ch; }
+            line = part;
+          } else line = test;
+        } else { lines.push(line.trimEnd()); line = word.trimStart(); }
+      }
+      lines.push(line.trimEnd());
+    }
+    return lines;
+  }
+  rgb(c) { return c.map((v) => (v / 255).toFixed(3)).join(' '); }
+  text(t, x, size, { bold = false, color = [28, 28, 30] } = {}) {
+    this.ops.push(`BT /${bold ? 'F2' : 'F1'} ${size} Tf ${this.rgb(color)} rg ${x.toFixed(2)} ${(this.H - this.y - size * 0.8).toFixed(2)} Td ${pdfStr(t)} Tj ET`);
+  }
+  para(t, { x = this.M.l, w = this.width, size = 10, bold = false, color, lead = 1.32, keep = false } = {}) {
+    const lines = this.wrap(t, w, size, bold), lh = size * lead;
+    if (keep) this.ensure(lines.length * lh);
+    for (const l of lines) { this.ensure(lh); this.text(l, x, size, { bold, color }); this.y += lh; }
+    return lines.length * lh;
+  }
+  rule(x1 = this.M.l, x2 = this.W - this.M.r, gray = 200, wdt = 0.5) { this.ops.push(`${this.rgb([gray, gray, gray])} RG ${wdt} w ${x1.toFixed(2)} ${(this.H - this.y).toFixed(2)} m ${x2.toFixed(2)} ${(this.H - this.y).toFixed(2)} l S`); }
+  box(x, y, w, h, fill) { this.ops.push(`${this.rgb(fill)} rg ${x.toFixed(2)} ${(this.H - y - h).toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re f`); }
+  checkbox(x, size, checked) { // abhakbares Kästchen, auf der aktuellen Zeile
+    const s = size * 0.78, top = this.y + size * 0.16, y0 = this.H - top - s;
+    this.ops.push(`0.35 0.35 0.37 RG 0.8 w ${x.toFixed(2)} ${y0.toFixed(2)} ${s.toFixed(2)} ${s.toFixed(2)} re S`);
+    if (checked) this.ops.push(`0.14 0.54 0.24 RG 1.4 w ${(x + s * 0.2).toFixed(2)} ${(y0 + s * 0.5).toFixed(2)} m ${(x + s * 0.42).toFixed(2)} ${(y0 + s * 0.22).toFixed(2)} l ${(x + s * 0.85).toFixed(2)} ${(y0 + s * 0.85).toFixed(2)} l S`);
+  }
+  bytes(footer) {
+    const n = this.pages.length;
+    this.pages.forEach((ops, i) => { const f = `${footer} · Seite ${i + 1} von ${n}`; ops.push(`BT /F1 8 Tf 0.53 0.53 0.55 rg ${this.M.l} 32 Td ${pdfStr(f)} Tj ET`); });
+    const objs = [];
+    const add = (s) => { objs.push(s); return objs.length; };
+    const catalog = add(''), pagesObj = add('');
+    const f1 = add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
+    const f2 = add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+    const kids = [];
+    for (const ops of this.pages) {
+      const stream = ops.join('\n');
+      const c = add(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
+      kids.push(add(`<< /Type /Page /Parent ${pagesObj} 0 R /MediaBox [0 0 ${this.W} ${this.H}] /Resources << /Font << /F1 ${f1} 0 R /F2 ${f2} 0 R >> >> /Contents ${c} 0 R >>`));
+    }
+    objs[catalog - 1] = `<< /Type /Catalog /Pages ${pagesObj} 0 R >>`;
+    objs[pagesObj - 1] = `<< /Type /Pages /Kids [${kids.map((k) => k + ' 0 R').join(' ')}] /Count ${kids.length} >>`;
+    let out = '%PDF-1.4\n%\xE2\xE3\xCF\xD3\n'; const offs = [];
+    objs.forEach((o, i) => { offs.push(out.length); out += `${i + 1} 0 obj\n${o}\nendobj\n`; });
+    const xref = out.length;
+    out += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n` + offs.map((o) => String(o).padStart(10, '0') + ' 00000 n \n').join('');
+    out += `trailer\n<< /Size ${objs.length + 1} /Root ${catalog} 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+    const b = new Uint8Array(out.length); for (let i = 0; i < out.length; i++) b[i] = out.charCodeAt(i) & 255;
+    return b;
+  }
+}
+function buildPdf(sel = exportSelection()) {
+  const m = data.meeting, d = new Pdf(), L = d.M.l, gray = [134, 134, 139];
+  d.para('THEMEN & VERANTWORTLICHKEITEN · VERTRAULICH', { size: 7.5, bold: true, color: gray }); d.y += 2;
+  d.para(m.titel || 'Besprechung', { size: 20, bold: true, lead: 1.2 }); d.y += 2;
+  const head = [m.datum ? fmtDate(m.datum) : '', m.ort].filter(Boolean).join(' · ');
+  if (head) d.para(head, { size: 10, color: [58, 58, 60] });
+  d.para(`${selectionLabel()} – ${sel.length} ${sel.length === 1 ? 'Thema' : 'Themen'}`, { size: 10, bold: true }); d.y += 6; d.rule(); d.y += 14;
+  // Übersicht als Tabelle
+  const cols = [{ t: 'Nr.', w: 24 }, { t: 'Thema', w: d.width - 24 - 112 - 58 - 72 }, { t: 'Verantwortlich', w: 112 }, { t: 'Frist', w: 58 }, { t: 'Status', w: 72 }];
+  const drawHead = () => { let x = L; d.ensure(30); cols.forEach((c) => { d.text(c.t, x, 8, { bold: true, color: gray }); x += c.w; }); d.y += 12; d.rule(L, d.W - d.M.r, 28, 0.8); d.y += 5; };
+  d.para('Übersicht', { size: 12.5, bold: true }); d.y += 4; drawHead();
+  for (const { p, nr } of sel) {
+    const cells = [String(nr), (p.wichtig ? '!! ' : '') + oneLine(p.titel), ownerText(p) || '–', p.frist ? fmtDE(p.frist) : '–', STATUS_LABEL[p.status]];
+    const wrapped = cells.map((t, i) => d.wrap(t, cols[i].w - 8, 9, false));
+    const h = Math.max(...wrapped.map((w) => w.length)) * 11.6 + 6;
+    if (d.y + h > d.H - d.M.b) { d.newPage(); drawHead(); }
+    let x = L; const y0 = d.y;
+    wrapped.forEach((lines, i) => { d.y = y0; lines.forEach((l) => { d.text(l, x, 9); d.y += 11.6; }); x += cols[i].w; });
+    d.y = y0 + h; d.rule(L, d.W - d.M.r, 214); d.y += 5;
+  }
+  // Themen im Einzelnen, bei „Alle Personen“ nach Person gegliedert
   const groups = prefs.exPerson === 'alle' ? groupByPerson(sel) : [[null, sel]];
-  return `<div class="pr-doc">
-    <div class="pr-kicker">Themen &amp; Verantwortlichkeiten · Vertraulich</div>
-    <h1>${pv(m.titel) || 'Besprechung'}</h1>
-    <div class="pr-sel">${esc([m.datum ? fmtDate(m.datum) : '', m.ort].filter(Boolean).join(' · '))}${m.datum || m.ort ? '<br>' : ''}<b>${esc(selectionLabel())}</b> – ${sel.length} ${sel.length === 1 ? 'Thema' : 'Themen'}</div>
-    <h2 class="pr-h2">Übersicht</h2>${table}
-    ${groups.map(([who, list]) => `<h2 class="pr-h2">${who === null ? 'Im Einzelnen' : esc(who || 'Ohne Verantwortlichen') + ` (${list.length})`}</h2>${list.map(({ p, nr }) => prTopic(p, nr, who === null)).join('')}`).join('')}
-    <div class="pr-foot">Stand: ${esc(new Date().toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' }))}${m.absender ? ' · ' + esc(m.absender) : ''}</div></div>`;
+  for (const [who, list] of groups) {
+    d.y += 14; d.ensure(60);
+    d.para(who === null ? 'Im Einzelnen' : `${who || 'Ohne Verantwortlichen'} (${list.length})`, { size: 12.5, bold: true }); d.y += 2;
+    for (const { p, nr } of list) {
+      d.ensure(56); d.y += 4; d.rule(); d.y += 8;
+      const tx = L + 22, tw = d.width - 22;
+      d.text(nr + '.', L, 10.5, { bold: true });
+      d.para((p.wichtig ? '!! ' : '') + (p.titel.trim() || 'Ohne Titel'), { x: tx, w: tw, size: 10.5, bold: true });
+      const meta = [STATUS_LABEL[p.status]];
+      if (who === null) meta.push('Verantwortlich: ' + (ownerText(p) || '–'));
+      else if (p.verantwortliche.length > 1) meta.push('gemeinsam mit ' + p.verantwortliche.filter((v) => !samePerson(v, who)).join(', '));
+      if (p.frist) meta.push('bis ' + fmtDate(p.frist));
+      if (p.unterpunkte.length) meta.push(`${subDone(p)}/${p.unterpunkte.length} Unterpunkte erledigt`);
+      meta.push(p.kategorie); if (p.besprochen) meta.push('besprochen');
+      d.para(meta.join(' · '), { x: tx, w: tw, size: 8.5, color: [110, 110, 115] }); d.y += 3;
+      if (p.loesung.trim()) { d.para('Vorschlag', { x: tx, w: tw, size: 7.5, bold: true, color: gray }); d.para(p.loesung.trim(), { x: tx, w: tw, size: 9.5 }); d.y += 2; }
+      if (p.offen.trim()) {
+        const lines = d.wrap('Offen: ' + p.offen.trim(), tw - 12, 9.5, false), h = lines.length * 12.5 + 6;
+        d.ensure(h); d.box(tx - 2, d.y - 1, tw + 2, h, [255, 246, 214]); d.y += 3;
+        lines.forEach((l) => { d.text(l, tx + 5, 9.5, { color: [90, 60, 0] }); d.y += 12.5; }); d.y += 5;
+      }
+      if (p.unterpunkte.length) {
+        d.para('Unterpunkte', { x: tx, w: tw, size: 7.5, bold: true, color: gray });
+        for (const u of p.unterpunkte) {
+          const lines = d.wrap(u.text.trim() || '…', tw - 16, 9.5, false);
+          d.ensure(lines.length * 12.5); d.checkbox(tx, 9.5, u.erledigt);
+          lines.forEach((l) => { d.text(l, tx + 15, 9.5, { color: u.erledigt ? [110, 110, 115] : [28, 28, 30] }); d.y += 12.5; });
+        }
+        d.y += 2;
+      }
+      if (prefs.exNotes && p.notizen.trim()) { d.para('Notizen', { x: tx, w: tw, size: 7.5, bold: true, color: gray }); d.para(p.notizen.trim(), { x: tx, w: tw, size: 9.5 }); }
+      d.y += 4;
+    }
+  }
+  const stand = 'Stand: ' + new Date().toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' }) + (m.absender ? ' · ' + m.absender : '');
+  return d.bytes(stand);
 }
+async function sharePdf() {
+  flushSave();
+  const r = await deliverFile(buildPdf(), fileStem('Themen') + '.pdf', 'application/pdf');
+  if (r === 'downloaded') toast('PDF gesichert (Ordner „Downloads“)');
+}
+
 function fileStem(kind) {
   const m = data.meeting; const d = m.datum || isoDate(new Date());
   const who = prefs.exPerson !== 'alle' && prefs.exPerson !== NOBODY ? '_' + prefs.exPerson : '';
   const t = ((m.titel || '') + who).replace(/[^\wäöüÄÖÜß-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 50);
   return `${kind}_${d}${t ? '_' + t : ''}`;
-}
-function doPrint() {
-  flushSave();
-  $('#print').innerHTML = buildPrint();
-  const old = document.title;
-  document.title = fileStem('Themen');
-  const restore = () => { document.title = old; window.removeEventListener('afterprint', restore); };
-  window.addEventListener('afterprint', restore);
-  setTimeout(restore, 60000);
-  window.print();
-}
-function standaloneHTML() {
-  const css = $$('style').map((s) => s.textContent).join('\n');
-  return `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(fileStem('Themen'))}</title><style>${css}\nbody{background:#fff;color:#000;padding:24px}#print{display:block}@media print{body{padding:0}}</style></head><body><div id="print">${buildPrint()}</div></body></html>`;
 }
 async function copyText(text) {
   try { await navigator.clipboard.writeText(text); return true; } catch (e) { /* Fallback */ }
@@ -1973,11 +2077,11 @@ function sampleData() { // frei erfundene Beispieldaten
     personen: [{ id: uid(), name: 'Anna Beispiel', email: 'anna@example.com' }, { id: uid(), name: 'Ben Muster', email: 'ben@example.com' }, { id: uid(), name: 'Carla Probe', email: '' }] });
   d.punkte = parseList(SAMPLE_LIST, { autoKat: true, herkunft: 'Werkstatt' }).items.map((it) => newPoint({ urspNr: it.urspNr, kategorie: it.kategorie, herkunft: it.herkunft, titel: it.kritik, loesung: it.loesung, offen: it.offen }));
   const base = isoDate(new Date());
-  Object.assign(d.punkte[0], { besprochen: true, status: 'arbeit', wichtig: true, verantwortlich: 'Carla Probe', frist: addDays(base, 14), notizen: 'Rückstau aktuell ca. 15 Anträge.',
+  Object.assign(d.punkte[0], { besprochen: true, status: 'arbeit', wichtig: true, verantwortliche: ['Carla Probe'], frist: addDays(base, 14), notizen: 'Rückstau aktuell ca. 15 Anträge.',
     unterpunkte: [Object.assign(newSub('Liste aller offenen Anträge erstellen'), { erledigt: true }), newSub('Vertretung im Urlaub festlegen'), newSub('Jeden Montag Stand an GF melden')] });
-  Object.assign(d.punkte[1], { besprochen: true, status: 'arbeit', verantwortlich: 'Ben Muster', frist: addDays(base, 7), unterpunkte: [newSub('Etikettendrucker im Wareneingang einrichten'), newSub('Kurze Einweisung fürs Team')] });
-  Object.assign(d.punkte[2], { besprochen: true, status: 'erledigt', verantwortlich: 'Anna Beispiel', unterpunkte: [Object.assign(newSub('Pflichtfelder in der Auftragsannahme festgelegt'), { erledigt: true })] });
-  Object.assign(d.punkte[4], { besprochen: true, status: 'arbeit', verantwortlich: 'Ben Muster', frist: addDays(base, 21) });
+  Object.assign(d.punkte[1], { besprochen: true, status: 'arbeit', verantwortliche: ['Ben Muster', 'Anna Beispiel'], frist: addDays(base, 7), unterpunkte: [newSub('Etikettendrucker im Wareneingang einrichten'), newSub('Kurze Einweisung fürs Team')] });
+  Object.assign(d.punkte[2], { besprochen: true, status: 'erledigt', verantwortliche: ['Anna Beispiel'], unterpunkte: [Object.assign(newSub('Pflichtfelder in der Auftragsannahme festgelegt'), { erledigt: true })] });
+  Object.assign(d.punkte[4], { besprochen: true, status: 'arbeit', verantwortliche: ['Ben Muster'], frist: addDays(base, 21) });
   return d;
 }
 
@@ -1997,7 +2101,7 @@ const HELP_HTML = `
   <li><strong>Rahmen setzen:</strong> Danke sagen, Ziel nennen, ankündigen, dass offen mitgeschrieben wird und alle das Ergebnis bekommen. Laut Googles Studie „Project Aristotle“ ist psychologische Sicherheit der wichtigste Faktor guter Teams (A. Edmondson, Harvard).</li>
   <li><strong>Erst zuhören, dann Vorschlag:</strong> Kritik in eigenen Worten wiederholen, nicht verteidigen. Erst danach den Vorschlag zeigen: „Was fehlt?“</li>
   <li><strong>Was – Wer – Bis wann:</strong> Ergebnisse festhalten, nicht wer was gesagt hat. Kein „so bald wie möglich“.</li>
-  <li><strong>Genau eine verantwortliche Person:</strong> Apple nennt das „DRI“. Was „allen“ gehört, gehört niemandem.</li>
+  <li><strong>Klare Verantwortung:</strong> Apple nennt das „DRI“ – eine Person „hat den Hut auf“. Was „allen“ gehört, gehört niemandem. Mehrere Verantwortliche sind möglich; die zuerst gewählte Person steht vorn.</li>
   <li><strong>Frist immer – notfalls vorläufig.</strong> Ohne Datum passiert erfahrungsgemäß nichts.</li>
   <li><strong>Große Themen in Unterpunkte zerlegen:</strong> Kleine, abhakbare Schritte machen Fortschritt sichtbar.</li>
   <li><strong>Zum Schluss gemeinsam durchgehen:</strong> Jeder bestätigt laut seine Themen (Steven Rogelberg, „The Surprising Science of Meetings“).</li>
@@ -2023,9 +2127,9 @@ async function editPerson(pid) {
   if (!r) return;
   if (r === 'del') {
     data.meeting.personen = personen().filter((y) => y.id !== pid);
-    data.punkte.forEach((p) => { if (samePerson(p.verantwortlich, x.name)) p.verantwortlich = ''; });
+    data.punkte.forEach((p) => { p.verantwortliche = p.verantwortliche.filter((v) => !samePerson(v, x.name)); });
   } else if (r.name) {
-    data.punkte.forEach((p) => { if (samePerson(p.verantwortlich, x.name)) p.verantwortlich = r.name; });
+    data.punkte.forEach((p) => { p.verantwortliche = p.verantwortliche.map((v) => (samePerson(v, x.name) ? r.name : v)); });
     if (samePerson(prefs.fPerson, x.name)) prefs.fPerson = r.name;
     x.name = r.name; x.email = r.email;
   }
@@ -2037,7 +2141,7 @@ async function newPerson(forPoint) {
   let x = personByName(r.name);
   if (x) { if (r.email) x.email = r.email; } else { x = { id: uid(), name: r.name, email: r.email }; data.meeting.personen.push(x); }
   changed();
-  if (forPoint) setOwner(forPoint, x.name);
+  if (forPoint && !isOwner(forPoint, x.name)) setOwner(forPoint, x.name);
   if ($('#dlg-meeting').open) renderMeeting();
   return x;
 }
@@ -2058,7 +2162,7 @@ const ACTIONS = {
   'set-status': (el) => { const p = P(el); if (p) setStatus(p, el.dataset.value, el); },
   'set-owner': (el) => { const p = P(el); if (p) setOwner(p, el.dataset.value); },
   'add-person': (el) => newPerson(P(el)),
-  'set-frist': (el) => { const p = P(el); if (!p) return; p.frist = p.frist === el.dataset.value ? '' : el.dataset.value; const i = $('#f-frist'); if (i) i.value = p.frist; changed(); refreshDetailLive(p); },
+  'set-frist': (el) => { const p = P(el); if (!p) return; p.frist = p.frist === el.dataset.value ? '' : el.dataset.value; fristOpen.add(p.id); const i = $('#f-frist'); if (i) i.value = p.frist; changed(); refreshDetailLive(p); },
   'toggle-sub': (el) => { const p = P(el); if (!p) return; const u = p.unterpunkte.find((x) => x.id === el.dataset.sub); if (!u) return; u.erledigt = !u.erledigt; changed(); el.setAttribute('aria-pressed', String(u.erledigt)); el.closest('.sub-row').classList.toggle('done', u.erledigt); refreshDetailLive(p); },
   'add-sub': (el) => { const p = P(el); if (p) addSub(p); },
   'del-sub': (el) => { const p = P(el); if (p) delSub(p, el.dataset.sub); },
@@ -2083,10 +2187,9 @@ const ACTIONS = {
   'import-apply': () => importApply(),
   'import-json-text': async () => { try { const d = readJSONText($('#importText').value); closeDlg($('#dlg-import')); if (await confirmRestore(d, 'Backup laden?')) $('#importText').value = ''; } catch (e) { toast(e.message, { timeout: 8000 }); } },
   'ex-status': (el) => { prefs.exStatus = el.dataset.value; savePrefs(); renderShare(); },
-  print: () => { closeSheets(); doPrint(); },
+  pdf: () => sharePdf(),
   'mail-selection': () => openMail(mailSelection()),
   'mail-person': (el) => openMail(mailFor(el.dataset.name, exportSelection(prefs.exStatus, el.dataset.name))),
-  'share-html': async () => { const r = await deliverFile(standaloneHTML(), fileStem('Themen') + '.html', 'text/html'); if (r === 'shared') toast('Datei in „Dateien“ öffnen → Teilen → Drucken'); },
   csv: async () => { const r = await deliverFile(buildCSV(), fileStem('Themen') + '.csv', 'text/csv'); if (r === 'downloaded') toast('Excel-Datei gesichert'); },
   'copy-text': async () => { const ok = await copyText(buildText()); toast(ok ? 'Text kopiert' : 'Kopieren nicht möglich'); },
   'backup-save': () => backupSave(true),
@@ -2148,6 +2251,14 @@ function bind() {
     if (el.dataset.subtext) {
       const p = byId(el.dataset.id), u = p && p.unterpunkte.find((x) => x.id === el.dataset.subtext);
       if (u && u.text !== el.value) { u.text = el.value; changed(); }
+      return;
+    }
+    if (el.id === 'fristToggle') {
+      if (e.type !== 'change') return;
+      const p = byId(el.dataset.id); if (!p) return;
+      const box = $('#fristBox');
+      if (el.checked) { fristOpen.add(p.id); box.hidden = false; }
+      else { fristOpen.delete(p.id); box.hidden = true; if (p.frist) { p.frist = ''; $('#f-frist').value = ''; changed(); } refreshDetailLive(p); }
       return;
     }
     if (el.dataset.field && el.dataset.id) {
@@ -2232,7 +2343,7 @@ function init() {
   updateWakeLock();
   if (syncConfigured()) setSync(signedIn() ? 'ok' : 'login');
   handleRedirect().then((handled) => { if (!handled) syncNow(); });
-  window.__app = { get data() { return data; }, parseList, buildCSV, buildText, buildPrint, mailFor, mailSelection, exportSelection, flushSave, mergeData, syncNow, normalizeData, get syncState() { return syncState; } };
+  window.__app = { get data() { return data; }, parseList, buildCSV, buildText, buildPdf, mailFor, mailSelection, exportSelection, flushSave, mergeData, syncNow, normalizeData, get syncState() { return syncState; } };
 }
 init();
 })();
