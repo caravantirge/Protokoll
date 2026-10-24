@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- Sicherheit: Verbindungen nur zu Microsoft 365 (Anmeldung & OneDrive) – sonst zu keinem Server. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://login.microsoftonline.com https://graph.microsoft.com https://*.sharepoint.com; font-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://login.microsoftonline.com https://graph.microsoft.com https://*.sharepoint.com https://*.1drv.com; font-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="light dark">
@@ -71,7 +71,7 @@ h1,h2,h3,p{margin:0}
 .topbar.edge{box-shadow:0 .5px 0 var(--sep)}
 .tb-left{display:flex;align-items:center;justify-self:start;min-width:0}
 .tb-center{text-align:center;min-width:0}
-.tb-center b{display:block;font-weight:600;white-space:nowrap}
+.tb-center b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tb-right{display:flex;align-items:center;gap:2px;justify-self:end}
 .save-state{display:inline-flex;align-items:center;gap:5px;min-height:36px;padding:0 6px;font-size:.8rem;color:var(--muted);white-space:nowrap}
 .save-state .ic{width:1em;height:1em}
@@ -232,6 +232,8 @@ dialog[open]{display:flex;flex-direction:column}
 dialog.closing{pointer-events:none}
 dialog.wide{width:min(1100px,calc(100vw - 24px))}
 #scrim{position:fixed;inset:0;z-index:55;background:rgba(0,0,0,.32);pointer-events:none}
+html.dlg-closing #scrim{pointer-events:auto}
+dialog::backdrop{cursor:pointer}
 .dlg-head{position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:8px 12px;border-bottom:.5px solid var(--sep);background:var(--bar);touch-action:none;cursor:grab}
 .dlg-head h2{font-size:1.02rem;font-weight:600;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dlg-head .r{justify-self:end}.dlg-head .l{justify-self:start}
@@ -285,15 +287,17 @@ dialog.popover .grabber{display:none}
   .wrap{padding:16px max(16px,env(safe-area-inset-right)) 48px max(16px,env(safe-area-inset-left))}
   .large{font-size:1.75rem}
   .d-title{font-size:1.3rem}
-  .seg button{padding:0 3px;font-size:.8rem}
+  .seg button{flex:1 1 auto;padding:0 6px;font-size:.8rem}
   .seg .cnt{display:none}
   .seg.big button{font-size:.86rem}
   .controls .search{flex:1 1 100%}
   .pt-main>.status{display:none}
   .st-inline{display:inline;font-size:inherit}
   .tb-left .save-state .txt{display:none}
+  .wide-only{display:none}
+  .topbar .back{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .frow>span{flex-basis:96px}
-  dialog,dialog.wide,dialog.popover{inset:auto 0 0 0;margin:0;width:100%;max-width:none;max-height:calc(100dvh - 20px);border-radius:14px 14px 0 0}
+  dialog,dialog.wide,dialog.popover{inset:auto 0 0 0;margin:0;width:100%;max-width:none;max-height:calc(100dvh - max(44px, env(safe-area-inset-top) + 10px));border-radius:14px 14px 0 0}
   dialog.popover{background:var(--sheet-bg);-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:0 -10px 40px rgba(0,0,0,.18)}
   dialog.popover .group{background:var(--sheet-surface)}
   dialog.popover .grabber{display:block}
@@ -424,7 +428,7 @@ dialog.popover .grabber{display:none}
    OneDrive des Nutzers. Nie auf einem fremden Server.
    ===================================================================== */
 const APP_ID = 'besprechungsprotokoll';
-const APP_VERSION = '4.1';
+const APP_VERSION = '4.2';
 const DATA_VERSION = 2;
 const KEY = 'bprot.v1.data', SNAP_KEY = 'bprot.v1.snapshots', PREF_KEY = 'bprot.v1.prefs';
 
@@ -465,15 +469,16 @@ function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTi
 // Besprechung mit Personen; darin Themen. Jedes Thema: Text, Vorschlag, Unterpunkte,
 // verantwortliche Personen (eine oder mehrere), Frist, Status (offen → in Bearbeitung → erledigt) und „besprochen“.
 function emptyMeeting() {
-  return { titel: '', datum: '', ort: '', absender: '', personen: [], notizen: '', aktualisiert: 0 };
+  return { titel: '', datum: '', ort: '', absender: '', personen: [], notizen: '', aktualisiert: 0, ts: {}, personenGeloescht: {} };
 }
 function emptyData() {
   return { app: APP_ID, version: DATA_VERSION, id: uid(), meeting: emptyMeeting(), punkte: [], geloescht: {}, meta: { erstellt: new Date().toISOString(), geaendert: null, letztesBackup: null, reihenfolge: 0 } };
 }
 function newPoint(over = {}) {
-  return Object.assign({ id: uid(), titel: '', loesung: '', offen: '', notizen: '', unterpunkte: [], verantwortliche: [], frist: '', wichtig: false, status: 'offen', besprochen: false, kategorie: 'Sonstiges', herkunft: 'Werkstatt', urspNr: null, ergaenzt: false, aktualisiert: 0 }, over);
+  return Object.assign({ id: uid(), titel: '', loesung: '', offen: '', notizen: '', unterpunkte: [], verantwortliche: [], frist: '', wichtig: false, status: 'offen', besprochen: false, kategorie: 'Sonstiges', herkunft: 'Werkstatt', urspNr: null, ergaenzt: false, aktualisiert: 0, ts: {} }, over);
 }
 const newSub = (text = '') => ({ id: uid(), text, erledigt: false });
+const safeId = (v) => (typeof v === 'string' && /^[\w-]{1,64}$/.test(v) ? v : uid());
 function matchKategorie(raw) {
   const n = norm(raw); if (!n) return null;
   const exact = KATEGORIEN.find((k) => norm(k) === n); if (exact) return exact;
@@ -485,22 +490,20 @@ function normPrio(raw) { const n = norm(raw); if (!n) return null; if (/hoch|hig
 function normalizePoint(p) {
   const n = newPoint();
   if (!p || typeof p !== 'object') return n;
-  if (typeof p.id === 'string' && p.id) n.id = p.id;
+  n.id = safeId(p.id);
   n.titel = String(p.titel ?? p.kritik ?? '');
   for (const k of ['loesung', 'offen', 'notizen', 'frist']) if (p[k] != null) n[k] = String(p[k]);
-  const own = Array.isArray(p.verantwortliche) ? p.verantwortliche : names(p.verantwortlich); // Version 1–4: ein Textfeld
-  n.verantwortliche = own.map((x) => String(x).trim()).filter((x, i, a) => x && a.findIndex((y) => y.toLowerCase() === x.toLowerCase()) === i);
-  if (Array.isArray(p.unterpunkte)) n.unterpunkte = p.unterpunkte.filter((u) => u && typeof u === 'object').map((u) => ({ id: typeof u.id === 'string' && u.id ? u.id : uid(), text: String(u.text || ''), erledigt: !!u.erledigt }));
+  const own = Array.isArray(p.verantwortliche) ? p.verantwortliche : String(p.verantwortlich || '').split(/\s*(?:,|;|\/|&|\bund\b|\n)\s*/); // Version 1–4: ein Textfeld
+  n.verantwortliche = own.map((x) => cleanName(x)).filter((x, i, a) => x && a.findIndex((y) => y.toLowerCase() === x.toLowerCase()) === i);
+  if (Array.isArray(p.unterpunkte)) n.unterpunkte = p.unterpunkte.filter((u) => u && typeof u === 'object').map((u) => ({ id: safeId(u.id), text: String(u.text || ''), erledigt: !!u.erledigt }));
   else if (p.beschluss && String(p.beschluss).trim()) n.unterpunkte = String(p.beschluss).split(/\n+/).map((t) => t.replace(/^\s*[-–•*]\s*/, '').trim()).filter(Boolean).map((t) => newSub(t)); // aus Version 1
   if (p.kriterium && String(p.kriterium).trim()) n.notizen = (n.notizen ? n.notizen + '\n' : '') + 'Erledigt, wenn: ' + String(p.kriterium).trim();
   n.kategorie = KATEGORIEN.includes(p.kategorie) ? p.kategorie : (matchKategorie(p.kategorie) || 'Sonstiges');
   n.herkunft = HERKUNFT.includes(p.herkunft) ? p.herkunft : (normHerkunft(p.herkunft) || 'Werkstatt');
   n.wichtig = p.wichtig != null ? !!p.wichtig : p.prioritaet === 'hoch';
-  if (STATUS.includes(p.status)) { n.status = p.status; n.besprochen = !!p.besprochen; }
-  else { // Status aus Version 1 übertragen
-    n.besprochen = p.status === 'besprochen' || p.status === 'erledigt';
-    n.status = p.status === 'erledigt' ? 'erledigt' : (p.status === 'besprochen' && (n.verantwortliche.length || n.unterpunkte.length)) ? 'arbeit' : 'offen';
-  }
+  n.status = STATUS.includes(p.status) ? p.status : (p.status === 'besprochen' && (n.verantwortliche.length || n.unterpunkte.length)) ? 'arbeit' : 'offen';
+  n.besprochen = p.besprochen != null ? !!p.besprochen : (p.status === 'besprochen' || p.status === 'erledigt'); // ältere Fassungen kannten kein eigenes Feld
+  if (p.ts && typeof p.ts === 'object') for (const [k, v] of Object.entries(p.ts)) if (POINT_FIELDS.includes(k) && Number.isFinite(+v)) n.ts[k] = +v;
   n.ergaenzt = !!p.ergaenzt;
   n.urspNr = p.urspNr != null && p.urspNr !== '' && Number.isFinite(+p.urspNr) ? +p.urspNr : null;
   n.aktualisiert = Math.max(0, +p.aktualisiert || 0);
@@ -516,16 +519,29 @@ function normalizeData(raw) {
   for (const k of ['titel', 'datum', 'ort', 'notizen']) if (m[k] != null) d.meeting[k] = String(m[k]);
   d.meeting.absender = String(m.absender ?? m.protokoll ?? '');
   d.meeting.aktualisiert = +m.aktualisiert || 0;
-  if (Array.isArray(m.personen)) d.meeting.personen = m.personen.filter((x) => x && x.name).map((x) => ({ id: typeof x.id === 'string' && x.id ? x.id : uid(), name: String(x.name).trim(), email: String(x.email || '').trim() }));
-  else d.meeting.personen = names(m.teilnehmer).map((n) => ({ id: uid(), name: n, email: '' })); // aus Version 1
+  if (Array.isArray(m.personen)) d.meeting.personen = m.personen.filter((x) => x && cleanName(x.name)).map((x) => ({ id: safeId(x.id), name: cleanName(x.name), email: String(x.email || '').trim(), aktualisiert: +x.aktualisiert || 0 }));
+  else d.meeting.personen = names(m.teilnehmer).map((n) => ({ id: nameId(cleanName(n)), name: cleanName(n), email: '', aktualisiert: 0 })); // aus Version 1
+  if (m.ts && typeof m.ts === 'object') for (const [k, v] of Object.entries(m.ts)) if (MEETING_FIELDS.includes(k) && Number.isFinite(+v)) d.meeting.ts[k] = +v;
+  if (m.personenGeloescht && typeof m.personenGeloescht === 'object') for (const [k, v] of Object.entries(m.personenGeloescht)) if (Number.isFinite(+v)) d.meeting.personenGeloescht[k] = +v;
   const seen = new Set();
   d.punkte = pts.map((p) => { const n = normalizePoint(p); if (seen.has(n.id)) n.id = uid(); seen.add(n.id); return n; });
   // Verantwortliche, die noch nicht als Person angelegt sind, ergänzen
-  for (const p of d.punkte) for (const v of p.verantwortliche) if (!d.meeting.personen.some((x) => x.name.toLowerCase() === v.toLowerCase())) d.meeting.personen.push({ id: uid(), name: v, email: '' });
+  tidyPeople(d);
   if (raw.meta && typeof raw.meta === 'object') { for (const k of ['erstellt', 'geaendert', 'letztesBackup']) if (typeof raw.meta[k] === 'string') d.meta[k] = raw.meta[k]; d.meta.reihenfolge = +raw.meta.reihenfolge || 0; }
-  if (typeof raw.id === 'string' && raw.id) d.id = raw.id;
+  if (typeof raw.id === 'string' && /^[\w-]{1,64}$/.test(raw.id)) d.id = raw.id;
   if (raw.geloescht && typeof raw.geloescht === 'object') for (const [k, v] of Object.entries(raw.geloescht)) if (Number.isFinite(+v)) d.geloescht[k] = +v;
   return d;
+}
+
+function nameId(name) { let h = 2166136261; for (const ch of name.toLowerCase()) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619); } return 'n' + (h >>> 0).toString(36); }
+const cleanName = (n) => String(n || '').replace(/[,;]/g, ' ').replace(/\s+/g, ' ').trim();
+function tidyPeople(d) { // keine doppelten Personen; jede verantwortliche Person ist angelegt
+  const seen = new Map();
+  d.meeting.personen = d.meeting.personen.filter((x) => { const k = x.name.toLowerCase(); if (seen.has(k)) return false; seen.set(k, x); return true; });
+  for (const p of d.punkte) {
+    p.verantwortliche = p.verantwortliche.map((v) => (seen.get(v.toLowerCase()) || { name: v }).name).filter((v, i, a) => a.findIndex((y) => y.toLowerCase() === v.toLowerCase()) === i);
+    for (const v of p.verantwortliche) if (!seen.has(v.toLowerCase())) { const x = { id: nameId(v), name: v, email: '', aktualisiert: 0 }; d.meeting.personen.push(x); seen.set(v.toLowerCase(), x); }
+  }
 }
 
 /* ---------- Zustand ---------- */
@@ -647,36 +663,69 @@ const signedIn = () => !!(syncConfigured() && sync.rt);
 const redirectUri = () => location.origin + location.pathname.replace(/index\.html$/, '');
 
 /* ---------- Änderungen erkennen (für das Zusammenführen) ---------- */
-let base = { id: null, pts: new Map(), meeting: '', order: '' };
-const pointSig = (p) => { const { aktualisiert, ...r } = p; void aktualisiert; return JSON.stringify(r); };
-const meetingSig = (m) => { const { aktualisiert, ...r } = m; void aktualisiert; return JSON.stringify(r); };
+const POINT_FIELDS = ['titel', 'loesung', 'offen', 'notizen', 'unterpunkte', 'verantwortliche', 'frist', 'wichtig', 'status', 'besprochen', 'kategorie', 'herkunft', 'urspNr', 'ergaenzt'];
+const MEETING_FIELDS = ['titel', 'datum', 'ort', 'absender', 'notizen'];
+const sig = (v) => JSON.stringify(v ?? null);
+const personSig = (x) => sig([x.name, x.email]);
+let base = { id: null, pts: new Map(), meeting: {}, personen: new Map(), order: '' };
 function setBaseline() {
-  base = { id: data.id, pts: new Map(data.punkte.map((p) => [p.id, pointSig(p)])), meeting: meetingSig(data.meeting), order: data.punkte.map((p) => p.id).join(',') };
+  base = { id: data.id,
+    pts: new Map(data.punkte.map((p) => [p.id, Object.fromEntries(POINT_FIELDS.map((f) => [f, sig(p[f])]))])),
+    meeting: Object.fromEntries(MEETING_FIELDS.map((f) => [f, sig(data.meeting[f])])),
+    personen: new Map(data.meeting.personen.map((x) => [x.id, personSig(x)])),
+    order: data.punkte.map((p) => p.id).join(',') };
 }
-function stampChanges() { // vergibt Zeitstempel an alles, was sich seit dem letzten Speichern geändert hat
+function stampChanges() { // vergibt Zeitstempel an jedes Feld, das sich seit dem letzten Speichern geändert hat
   if (data.id !== base.id) { setBaseline(); return; }
-  const now = Date.now(); data.geloescht = data.geloescht || {};
+  const now = Date.now(), m = data.meeting; data.geloescht = data.geloescht || {}; m.ts = seedTs(m, MEETING_FIELDS); m.personenGeloescht = m.personenGeloescht || {};
   const ids = new Set();
-  for (const p of data.punkte) { ids.add(p.id); if (base.pts.get(p.id) !== pointSig(p)) p.aktualisiert = now; }
+  for (const p of data.punkte) {
+    ids.add(p.id); p.ts = seedTs(p, POINT_FIELDS); const b = base.pts.get(p.id); let ch = false;
+    for (const f of POINT_FIELDS) if (!b || b[f] !== sig(p[f])) { p.ts[f] = now; ch = true; }
+    if (ch) p.aktualisiert = now;
+  }
   for (const id of base.pts.keys()) if (!ids.has(id)) data.geloescht[id] = now;
-  if (meetingSig(data.meeting) !== base.meeting) data.meeting.aktualisiert = now;
+  let mch = false;
+  for (const f of MEETING_FIELDS) if (base.meeting[f] !== sig(m[f])) { m.ts[f] = now; mch = true; }
+  const pids = new Set();
+  for (const x of m.personen) { pids.add(x.id); if (base.personen.get(x.id) !== personSig(x)) { x.aktualisiert = now; mch = true; } }
+  for (const id of base.personen.keys()) if (!pids.has(id)) { m.personenGeloescht[id] = now; mch = true; }
+  if (mch) m.aktualisiert = now;
   if (data.punkte.map((p) => p.id).join(',') !== base.order) data.meta.reihenfolge = now;
   setBaseline();
 }
-function mergeData(local, remote) { // pro Punkt gewinnt die jüngere Änderung; Löschungen bleiben gelöscht
-  const out = JSON.parse(JSON.stringify(local));
-  if ((remote.meeting.aktualisiert || 0) > (local.meeting.aktualisiert || 0)) out.meeting = JSON.parse(JSON.stringify(remote.meeting));
-  const tomb = Object.assign({}, local.geloescht || {});
-  for (const [id, t] of Object.entries(remote.geloescht || {})) tomb[id] = Math.max(tomb[id] || 0, t);
-  const map = new Map(local.punkte.map((p) => [p.id, p]));
-  for (const p of remote.punkte) { const l = map.get(p.id); if (!l || (p.aktualisiert || 0) > (l.aktualisiert || 0)) map.set(p.id, p); }
-  const rFirst = (remote.meta.reihenfolge || 0) > (local.meta.reihenfolge || 0);
-  const order = [...(rFirst ? remote : local).punkte, ...(rFirst ? local : remote).punkte].map((p) => p.id);
+function seedTs(o, fields) { // alte Daten ohne Zeitstempel je Feld: Stand des ganzen Eintrags übernehmen
+  const t = o.ts || {};
+  for (const f of fields) if (!(f in t)) t[f] = o.aktualisiert || 0;
+  return t;
+}
+const fts = (o, f) => (o.ts && f in o.ts ? o.ts[f] : o.aktualisiert || 0);
+function mergeObj(a, b, fields) { // pro Feld gewinnt die jüngere Änderung
+  const out = JSON.parse(JSON.stringify(a)); out.ts = Object.assign({}, a.ts || {});
+  for (const f of fields) if (b[f] !== undefined && fts(b, f) > fts(a, f)) { out[f] = JSON.parse(JSON.stringify(b[f])); out.ts[f] = fts(b, f); }
+  out.aktualisiert = Math.max(a.aktualisiert || 0, b.aktualisiert || 0);
+  return out;
+}
+function unionById(la, ra, tomb, stamp) { // Liste zusammenführen: jüngere Fassung je Eintrag, Gelöschtes bleibt gelöscht
+  const map = new Map(la.map((x) => [x.id, x]));
+  for (const x of ra) { const l = map.get(x.id); map.set(x.id, l ? stamp(l, x) : x); }
   const seen = new Set();
-  out.punkte = order.filter((id) => { if (seen.has(id)) return false; seen.add(id); const p = map.get(id); return p && !(id in tomb && tomb[id] >= (p.aktualisiert || 0)); }).map((id) => JSON.parse(JSON.stringify(map.get(id))));
-  const cutoff = Date.now() - 60 * 86400000;
+  return [...la, ...ra].map((x) => x.id).filter((id) => { if (seen.has(id)) return false; seen.add(id); const x = map.get(id); return x && !(id in tomb && tomb[id] >= (x.aktualisiert || 0)); }).map((id) => JSON.parse(JSON.stringify(map.get(id))));
+}
+const maxTomb = (a = {}, b = {}) => { const t = Object.assign({}, a); for (const [id, v] of Object.entries(b)) t[id] = Math.max(t[id] || 0, v); return t; };
+function mergeData(local, remote) {
+  const out = JSON.parse(JSON.stringify(local));
+  const m = mergeObj(local.meeting, remote.meeting, MEETING_FIELDS);
+  m.personenGeloescht = maxTomb(local.meeting.personenGeloescht, remote.meeting.personenGeloescht);
+  m.personen = unionById(local.meeting.personen, remote.meeting.personen, m.personenGeloescht, (l, r) => ((r.aktualisiert || 0) > (l.aktualisiert || 0) ? r : l));
+  out.meeting = m;
+  const tomb = maxTomb(local.geloescht, remote.geloescht);
+  const rFirst = (remote.meta.reihenfolge || 0) > (local.meta.reihenfolge || 0);
+  out.punkte = unionById((rFirst ? remote : local).punkte, (rFirst ? local : remote).punkte, tomb, (a, b) => mergeObj(a, b, POINT_FIELDS));
+  const cutoff = Date.now() - 365 * 86400000;
   out.geloescht = Object.fromEntries(Object.entries(tomb).filter(([, t]) => t > cutoff));
   out.meta.reihenfolge = Math.max(local.meta.reihenfolge || 0, remote.meta.reihenfolge || 0);
+  tidyPeople(out);
   return out;
 }
 const contentSig = (d) => JSON.stringify({ id: d.id, m: d.meeting, p: d.punkte, g: d.geloescht || {} });
@@ -744,9 +793,9 @@ async function pull() {
   if (!fr.ok) throw new Error('Datei konnte nicht geladen werden (' + fr.status + ')');
   return { remote: normalizeData(await fr.json()), etag: item.eTag || null };
 }
-async function putFile(path, obj, etag) {
+async function putFile(path, obj, etag, mustBeNew = false) {
   const headers = { 'Content-Type': 'application/json' };
-  if (etag) headers['If-Match'] = etag;
+  if (etag) headers['If-Match'] = etag; else if (mustBeNew) headers['If-None-Match'] = '*'; // nichts überschreiben, was ein anderes Gerät gerade angelegt hat
   const res = await graph(`${path}:/content`, { method: 'PUT', headers, body: JSON.stringify(obj) });
   if (res.status === 412) return { conflict: true };
   if (!res.ok) throw new Error('Hochladen fehlgeschlagen (' + res.status + ')');
@@ -758,7 +807,11 @@ async function decide(remote) {
   if (!remote) return { result: data, upload: true };
   if (remote.id === data.id) { const m = mergeData(data, remote); return { result: m, upload: contentSig(m) !== contentSig(remote) }; }
   if (sync.lastId && remote.id === sync.lastId) return { result: data, upload: true, archive: true }; // hier neu begonnen
-  if (sync.lastId && data.id === sync.lastId) { makeSnapshot('Vor Übernahme vom anderen Gerät'); return { result: remote, upload: false }; } // am anderen Gerät neu begonnen
+  if (sync.lastId && data.id === sync.lastId) { // am anderen Gerät neu begonnen
+    makeSnapshot('Vor Übernahme vom anderen Gerät');
+    const unsynced = !!(sync.lastSync && data.meta.geaendert && Date.parse(data.meta.geaendert) > sync.lastSync);
+    return { result: remote, upload: false, archiveLocal: unsynced };
+  }
   if (!hasContent(data)) return { result: remote, upload: false };
   const r = await choice({ title: 'Welche Besprechung behalten?', html: `<p>In OneDrive liegt <b>${esc(remote.meeting.titel || 'eine Besprechung')}</b> (${remote.punkte.length} Themen).<br>Auf diesem Gerät: <b>${esc(data.meeting.titel || 'Besprechung')}</b> (${data.punkte.length} Themen).</p><p style="margin-top:8px">Die andere Fassung wird gesichert und geht nicht verloren.</p>`, choices: [{ label: 'Diese hochladen', value: 'local' }, { label: 'OneDrive übernehmen', value: 'remote', cls: 'primary' }] });
   if (r === 'remote') { makeSnapshot('Vor Übernahme aus OneDrive'); return { result: remote, upload: false }; }
@@ -790,8 +843,9 @@ async function syncNow({ interactive = false } = {}) {
       if (plan.cancel) { setSync('paused'); return; }
       let tag = etag;
       if (plan.archive && remote) await putFile(archivePath(remote), remote);
+      if (plan.archiveLocal) { await putFile(archivePath(data), data); toast('Auf dem anderen Gerät wurde neu begonnen – deine letzten Änderungen liegen im OneDrive-Archiv.', { timeout: 9000 }); }
       if (plan.upload) {
-        const r = await putFile(`${SYNC_DIR}/aktuell.json`, plan.result, plan.archive ? null : etag);
+        const r = await putFile(`${SYNC_DIR}/aktuell.json`, plan.result, etag, !remote);
         if (r.conflict) continue; // anderes Gerät war schneller → neu holen und zusammenführen
         tag = r.etag;
       }
@@ -970,9 +1024,9 @@ function updateScrim() {
 }
 function openDlg(d, trigger) {
   const st = dlgState(d);
-  if (d.classList.contains('closing')) { d.classList.remove('closing'); d.close(); }
+  if (d.classList.contains('closing')) { clearTimeout(d.closeTimer); d.endToken = (d.endToken || 0) + 1; d.classList.remove('closing'); d.ignoreClose = (d.ignoreClose || 0) + 1; d.close(); }
   const wasClosed = !d.open;
-  if (wasClosed) { d.style.opacity = '0'; d.showModal(); }
+  if (wasClosed) { d.returnFocus = document.activeElement; d.style.opacity = '0'; d.showModal(); }
   updateLock();
   if (st.kind === 'popover' && trigger) {
     const r = trigger.getBoundingClientRect(), dr = d.getBoundingClientRect();
@@ -980,7 +1034,7 @@ function openDlg(d, trigger) {
   }
   if (st.kind === 'sheet') {
     st.H = d.offsetHeight || 600;
-    if (wasClosed && !st.spring.animating) st.spring.set(closedValue(st));
+    if (wasClosed && !st.spring.animating) st.spring.set(phone.matches ? closedValue(st) : Math.max(closedValue(st), innerHeight / 2 + st.H / 2));
     d.style.opacity = '';
     st.spring.to(0, { damping: 1, response: 0.35 });
   } else {
@@ -992,12 +1046,17 @@ function closeDlg(d, { velocity } = {}) {
   if (!d || !d.open || d.classList.contains('closing')) return;
   if (d.id === 'dlg-choice' && choiceResolve) { const r = choiceResolve; choiceResolve = null; r(null); } // abgebrochen (Esc, daneben getippt)
   const st = dlgState(d);
+  if (d.contains(document.activeElement)) document.activeElement.blur(); // Tastatur zu, nichts tippt ins verschwindende Fenster
   d.close();                      // sofort: Eingaben gehen zurück an die App
   d.classList.add('closing');     // nur noch die Ausblend-Bewegung
   d.show();
+  if (d.contains(document.activeElement)) document.activeElement.blur();
+  const rf = d.returnFocus; d.returnFocus = null;
+  if (rf && rf.isConnected && !phone.matches) try { rf.focus({ preventScroll: true }); } catch (_) { /* egal */ }
   updateLock();
-  const end = () => { d.ignoreClose = (d.ignoreClose || 0) + 1; d.close(); d.classList.remove('closing'); d.style.transform = ''; updateScrim(); updateLock(); };
-  if (reducedMotion.matches) { d.style.opacity = '0'; setTimeout(end, 200); updateScrim(); return; }
+  const token = d.endToken = (d.endToken || 0) + 1;
+  const end = () => { if (token !== d.endToken || !d.classList.contains('closing')) return; d.ignoreClose = (d.ignoreClose || 0) + 1; d.close(); d.classList.remove('closing'); d.style.transform = ''; updateScrim(); updateLock(); };
+  if (reducedMotion.matches) { d.style.opacity = '0'; d.closeTimer = setTimeout(end, 200); updateScrim(); return; }
   st.spring.to(closedValue(st), { damping: 1, response: st.kind === 'sheet' ? 0.32 : 0.22, velocity }, end);
 }
 // Blätter lassen sich am Kopf nach unten wegziehen – 1:1, mit Schwung und Gummiband nach oben
@@ -1006,7 +1065,7 @@ function enableSheetDrag(d) {
   const head = d.querySelector('.dlg-head'), body = d.querySelector('.dlg-body, .rb-body');
   const begin = (y0Client, t0) => {
     const st = dlgState(d); if (st.kind !== 'sheet' || d.classList.contains('closing')) return null;
-    st.spring.stop();
+    st.spring.stop(); st.H = d.offsetHeight || st.H;
     const y0 = st.spring.x, hist = [{ p: y0, t: t0 }];
     return {
       move(yClient, t) { const raw = y0 + (yClient - y0Client); const y = raw < 0 ? rubberband(raw, st.H) : raw; st.spring.x = y; applyDlg(d, st, y); hist.push({ p: raw, t }); if (hist.length > 20) hist.shift(); },
@@ -1014,7 +1073,7 @@ function enableSheetDrag(d) {
     };
   };
   if (head) head.addEventListener('pointerdown', (e) => {
-    if (e.button || e.target.closest('button,input,select,textarea,a')) return;
+    if (e.button || !e.isPrimary || e.target.closest('button,input,select,textarea,a')) return;
     const g = begin(e.clientY, e.timeStamp); if (!g) return;
     try { head.setPointerCapture(e.pointerId); } catch (_) { /* egal */ }
     const move = (ev) => g.move(ev.clientY, ev.timeStamp);
@@ -1028,9 +1087,9 @@ function enableSheetDrag(d) {
       if (!t || t.dead) return;
       const y = e.touches[0].clientY, dy = y - t.y, dx = e.touches[0].clientX - t.x;
       if (!t.g) {
-        if (Math.abs(dy) < 8 && Math.abs(dx) < 8) return;
+        // iOS beachtet preventDefault nur beim ersten touchmove – darum ohne Schwelle entscheiden
         if (!t.top || dy <= 0 || Math.abs(dx) > Math.abs(dy) || body.scrollTop > 0) { t.dead = true; return; } // normal scrollen
-        t.g = begin(y, e.timeStamp); if (!t.g) { t.dead = true; return; }
+        t.g = begin(t.y, e.timeStamp); if (!t.g) { t.dead = true; return; }
       }
       e.preventDefault(); t.g.move(y, e.timeStamp);
     }, { passive: false });
@@ -1040,7 +1099,17 @@ function enableSheetDrag(d) {
 }
 function updateLock() { // solange ein Fenster offen ist, scrollt der Hintergrund nicht mit
   document.documentElement.classList.toggle('modal-open', $$('dialog').some((x) => x.open && !x.classList.contains('closing')));
+  document.documentElement.classList.toggle('dlg-closing', $$('dialog').some((x) => x.classList.contains('closing')));
 }
+phone.addEventListener('change', () => { // Drehen oder Split View: offene Fenster wechseln zwischen Blatt und Popover
+  $$('dialog').forEach((d) => {
+    const st = dlgStates.get(d); if (!st || st.kind === dlgKind(d)) return;
+    st.spring.stop(); dlgStates.delete(d); d.style.transform = ''; d.style.opacity = '';
+    if (d.classList.contains('closing')) { d.endToken = (d.endToken || 0) + 1; d.ignoreClose = (d.ignoreClose || 0) + 1; d.close(); d.classList.remove('closing'); }
+    else if (d.open) { const n = dlgState(d); n.spring.set(n.kind === 'sheet' ? 0 : 1); }
+  });
+  updateScrim(); updateLock();
+});
 
 /* ---------- Abfragen ---------- */
 const byId = (id) => data.punkte.find((p) => p.id === id);
@@ -1083,7 +1152,7 @@ function selectionLabel(status = prefs.exStatus, who = prefs.exPerson) {
 }
 function neighbor(p, dir) {
   const arr = data.punkte; let i = arr.indexOf(p) + dir;
-  while (i >= 0 && i < arr.length) { if (matchesFilter(arr[i])) return arr[i]; i += dir; }
+  while (i >= 0 && i < arr.length) { if (matchesFilter(arr[i]) && matchesSearch(arr[i])) return arr[i]; i += dir; }
   return null;
 }
 
@@ -1094,6 +1163,9 @@ function setView(v) { prefs.view = v; savePrefs(); render(); window.scrollTo(0, 
 function render() {
   if (!['list', 'detail'].includes(prefs.view)) prefs.view = 'list';
   if (prefs.view === 'detail' && !byId(prefs.focusId)) prefs.view = 'list';
+  if (prefs.fPerson !== 'alle' && prefs.fPerson !== NOBODY && !personByName(prefs.fPerson)) prefs.fPerson = 'alle';
+  if (prefs.fKat !== 'alle' && !data.punkte.some((p) => p.kategorie === prefs.fKat)) prefs.fKat = 'alle';
+  if (prefs.exPerson && prefs.exPerson !== 'alle' && prefs.exPerson !== NOBODY && !personByName(prefs.exPerson)) prefs.exPerson = 'alle';
   const v = prefs.view;
   $('#v-list').hidden = v !== 'list'; $('#v-detail').hidden = v !== 'detail';
   renderTopbar();
@@ -1108,7 +1180,7 @@ function renderTopbar() {
   if (prefs.view === 'detail') {
     const p = byId(prefs.focusId), nr = nrOf(p.id);
     $('#tbLeft').innerHTML = `<button class="back" data-action="back">${ic('left')}Themen</button>`;
-    $('#tbCenter').innerHTML = `<b>Thema ${nr} von ${data.punkte.length}</b>${saveStateHTML()}`;
+    $('#tbCenter').innerHTML = `<b><span class="wide-only">Thema </span>${nr} von ${data.punkte.length}</b>${saveStateHTML()}`;
     $('#tbRight').innerHTML = `<button class="icon-btn" data-action="step" data-dir="-1" aria-label="Vorheriges Thema" ${neighbor(p, -1) ? '' : 'disabled'}>${ic('up')}</button><button class="icon-btn" data-action="step" data-dir="1" aria-label="Nächstes Thema" ${neighbor(p, 1) ? '' : 'disabled'}>${ic('down')}</button>${more}`;
   } else {
     $('#tbLeft').innerHTML = saveStateHTML();
@@ -1175,7 +1247,6 @@ function renderCards() {
   const list = data.punkte.map((p, i) => ({ p, nr: i + 1 })).filter((x) => matchesFilter(x.p) && matchesSearch(x.p));
   const rows = list.map(({ p, nr }, i) => {
     const meta = [];
-    if (p.status !== 'offen') meta.push(`<span class="st-inline status st-${p.status}">${STATUS_LABEL[p.status]}</span>`);
     meta.push(p.verantwortliche.length ? esc(ownerText(p)) : (p.status === 'arbeit' ? '<span class="miss">Wer?</span>' : ''));
     if (p.frist) meta.push('bis ' + esc(fmtDE(p.frist)));
     if (p.unterpunkte.length) meta.push(`${subDone(p)}/${p.unterpunkte.length} erledigt`);
@@ -1186,7 +1257,7 @@ function renderCards() {
       <div class="pt-main" role="button" tabindex="0" data-action="open-point" data-id="${p.id}" aria-label="Thema ${nr} öffnen">
         <div class="pt-body">
           <div class="pt-title">${p.wichtig ? '<span class="prio-mark" title="Wichtig">!!</span>' : ''}${esc(oneLine(p.titel)) || '<span class="muted">Ohne Titel</span>'}</div>
-          <div class="pt-meta">${meta.filter(Boolean).join(' · ')}</div>
+          <div class="pt-meta">${p.status !== 'offen' ? `<span class="st-inline"><span class="status st-${p.status}">${STATUS_LABEL[p.status]}</span>${meta.some(Boolean) ? ' · ' : ''}</span>` : ''}${meta.filter(Boolean).join(' · ')}</div>
         </div>
         ${p.status !== 'offen' ? `<span class="status st-${p.status}">${STATUS_LABEL[p.status]}</span>` : ''}
         ${reorder ? '' : chev()}
@@ -1209,7 +1280,7 @@ function fristOptions() {
   const base = isoDate(new Date());
   return [['+1 Woche', addDays(base, 7)], ['+2 Wochen', addDays(base, 14)], ['+4 Wochen', addDays(base, 28)], ['Monatsende', monthEnd(addDays(base, 7))]];
 }
-function fristChipsHTML(p) { return fristOptions().map(([l, v]) => `<button class="chip" data-action="set-frist" data-id="${p.id}" data-value="${v}" aria-pressed="${p.frist === v}">${l}</button>`).join(''); }
+function fristChipsHTML(p) { const opts = fristOptions(), hit = opts.findIndex(([, v]) => v === p.frist); return opts.map(([l, v], i) => `<button class="chip" data-action="set-frist" data-id="${p.id}" data-value="${v}" aria-pressed="${i === hit}">${l}</button>`).join(''); }
 function fristHint(p) {
   if (!p.frist) return '';
   const d = daysFromToday(p.frist);
@@ -1303,7 +1374,8 @@ function openPoint(id) {
   enterFrom(Math.min(160, window.innerWidth * 0.2)); // neue Ebene kommt von rechts
 }
 function back() {
-  const id = prefs.focusId; prefs.view = 'list'; savePrefs(); render();
+  const id = prefs.focusId, fp = byId(id);
+  if (fp && freshIds.has(id) && isBlank(fp)) { data.punkte = data.punkte.filter((x) => x !== fp); changed(); } prefs.view = 'list'; savePrefs(); render();
   enterFrom(-Math.min(120, window.innerWidth * 0.15)); // Liste kommt von links zurück
   const row = $(`[data-card="${id}"]`); if (row) row.scrollIntoView({ block: 'center' });
 }
@@ -1366,9 +1438,11 @@ function enableDetailSwipe() { // zwischen Themen wischen – Apple Pencil schre
 }
 
 /* ---------- Ändern ---------- */
+const freshIds = new Set();
+const isBlank = (p) => !p.titel.trim() && !p.loesung.trim() && !p.offen.trim() && !p.notizen.trim() && !p.unterpunkte.some((u) => u.text.trim()) && !p.verantwortliche.length && !p.frist && !p.wichtig && p.status === 'offen' && !p.besprochen;
 function addPoint() {
   const p = newPoint({ ergaenzt: data.punkte.length > 0 && !!data.meeting.datum && data.meeting.datum <= isoDate(new Date()) });
-  data.punkte.push(p); changed();
+  data.punkte.push(p); freshIds.add(p.id); changed();
   if (filterActive() && !matchesFilter(p)) resetFilters();
   closeSheets(); openPoint(p.id);
   const t = $('#f-titel'); if (t) t.focus();
@@ -1406,24 +1480,26 @@ function setStatus(p, s, el) {
   const d = $('#v-detail .disc'); if (d) { d.classList.toggle('on', p.besprochen); $('.tick', d).setAttribute('aria-pressed', String(p.besprochen)); $('.grow', d).textContent = p.besprochen ? 'Im Gespräch besprochen' : 'Als besprochen markieren'; }
   refreshDetailLive(p);
 }
-function addSub(p, afterId) {
-  const u = newSub('');
+function addSub(p, afterId, text = '') {
+  const u = newSub(text);
   const i = afterId ? p.unterpunkte.findIndex((x) => x.id === afterId) + 1 : p.unterpunkte.length;
   p.unterpunkte.splice(i, 0, u); changed();
   $('#subs').innerHTML = subsHTML(p); refreshDetailLive(p);
-  const inp = $(`[data-subtext="${u.id}"]`); if (inp) inp.focus();
+  const inp = $(`[data-subtext="${u.id}"]`); if (inp) { inp.focus(); inp.setSelectionRange(0, 0); }
 }
 function delSub(p, subId, focusPrev) {
   const i = p.unterpunkte.findIndex((x) => x.id === subId); if (i < 0) return;
   p.unterpunkte.splice(i, 1); changed();
   $('#subs').innerHTML = subsHTML(p); refreshDetailLive(p);
+  const add = $('[data-action="add-sub"]');
+  if (focusPrev && !p.unterpunkte[i - 1] && add) add.focus();
   if (focusPrev && p.unterpunkte[i - 1]) { const inp = $(`[data-subtext="${p.unterpunkte[i - 1].id}"]`); if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); } }
 }
 async function askPerson(prefill = {}) {
   const r = await choice({ title: prefill.name ? 'Person bearbeiten' : 'Neue Person', html: `<div class="group">
       <input class="field-in" id="pName" type="text" autocapitalize="words" autocomplete="off" placeholder="Name" value="${esc(prefill.name || '')}">
       <input class="field-in" id="pMail" type="email" autocapitalize="off" autocomplete="off" inputmode="email" placeholder="E-Mail (optional)" value="${esc(prefill.email || '')}"></div>`,
-    choices: [{ label: 'Abbrechen', value: null }, { label: 'Sichern', value: 'ok', cls: 'primary' }], focus: '#pName', read: () => ({ name: $('#pName').value.trim(), email: $('#pMail').value.trim() }) });
+    choices: [{ label: 'Abbrechen', value: null }, { label: 'Sichern', value: 'ok', cls: 'primary' }], focus: '#pName', read: () => ({ name: cleanName($('#pName').value), email: $('#pMail').value.trim() }) });
   return r && r !== 'ok' && r.name ? r : null;
 }
 
@@ -1538,6 +1614,7 @@ function choice({ title, text, html, choices, focus, read }) {
       const r = choiceResolve; choiceResolve = null; $('#dcFoot').onclick = null;
       closeDlg(d); if (r) r(result);
     };
+    $('#dcBody').onkeydown = (e) => { if (e.key === 'Enter' && e.target.matches('input') && !e.isComposing) { e.preventDefault(); const b = $('#dcFoot .primary'); if (b) b.click(); } };
     openDlg(d);
     if (focus) { const f = $(focus, d); if (f) f.focus(); }
   });
@@ -1785,7 +1862,7 @@ function groupByPerson(sel) {
   return [...map.entries()].sort((a, b) => (a[0] ? 0 : 1) - (b[0] ? 0 : 1) || a[0].localeCompare(b[0], 'de'));
 }
 function mailFor(name, sel) {
-  const m = data.meeting, pers = personByName(name), first = String(name || '').split(/\s+/)[0];
+  const m = data.meeting, pers = personByName(name), first = String(name || '').split(/\s+/).find((w) => w && !/^(dr|prof|dipl|ing|herr|frau|mag)\.?(-\w+\.?)?$/i.test(w)) || '';
   const intro = `aus unserer Besprechung „${meetingLine()}“ ${sel.length === 1 ? 'liegt folgendes Thema' : `liegen folgende ${sel.length} Themen`} bei dir:`;
   const body = [`Hallo ${first || 'zusammen'},`, '', intro, '', ...sel.map(({ p, nr }) => topicText(p, nr, { notes: prefs.exNotes, owner: false, forPerson: name }) + '\n'),
     'Bitte gib mir zu jedem Thema kurz Rückmeldung – gern direkt hier in der Antwort: erledigte Unterpunkte mit [x] markieren, neue Schritte einfach ergänzen.', '', 'Danke und viele Grüße', m.absender || ''].join('\n').trim();
@@ -1800,6 +1877,13 @@ function mailSelection() {
 function openMail({ to, subject, body }) {
   const url = `mailto:${encodeURIComponent(to).replace(/%40/g, '@')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   if (window.__mailHook) { window.__mailHook({ to, subject, body, url }); return; } // für Tests
+  if (url.length > 7000) { // sehr lange Links schneiden manche Mail-Apps ab: Text über die Zwischenablage
+    copyText(body).then((ok) => toast(ok ? 'Der Text ist lang – er liegt in der Zwischenablage. In der E-Mail einfach einfügen.' : 'Der Text ist zu lang für eine E-Mail. Bitte „Text kopieren“ nutzen.', { timeout: 9000 }));
+    return launchMail(`mailto:${encodeURIComponent(to).replace(/%40/g, '@')}?subject=${encodeURIComponent(subject)}`);
+  }
+  launchMail(url);
+}
+function launchMail(url) {
   const a = document.createElement('a'); a.href = url; a.rel = 'noopener'; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 1000);
 }
 function csvCell(v) {
@@ -1826,7 +1910,7 @@ const PDF_W = (() => {
   const extra = { 'Ä': [667, 722], 'Ö': [778, 778], 'Ü': [722, 722], 'ä': [556, 556], 'ö': [556, 611], 'ü': [556, 611], 'ß': [611, 611], 'é': [556, 556], 'è': [556, 556], 'à': [556, 556], '€': [556, 556], '–': [556, 556], '—': [1000, 1000], '„': [333, 500], '“': [333, 500], '”': [333, 500], '‚': [222, 278], '‘': [222, 278], '’': [222, 278], '•': [350, 350], '…': [1000, 1000], '·': [278, 278], '°': [400, 400], '§': [556, 556], '×': [584, 584], '²': [333, 333], '³': [333, 333] };
   return (ch, b) => { const c = ch.charCodeAt(0); if (c >= 32 && c <= 126) return (b ? bold : reg)[c - 32]; const e = extra[ch]; return e ? e[b ? 1 : 0] : 556; };
 })();
-const WIN = { '€': 0x80, '‚': 0x82, '„': 0x84, '…': 0x85, '‘': 0x91, '’': 0x92, '“': 0x93, '”': 0x94, '•': 0x95, '–': 0x96, '—': 0x97 };
+const WIN = { '€': 0x80, '‚': 0x82, 'ƒ': 0x83, '„': 0x84, '…': 0x85, '†': 0x86, '‡': 0x87, 'ˆ': 0x88, '‰': 0x89, 'Š': 0x8A, '‹': 0x8B, 'Œ': 0x8C, 'Ž': 0x8E, '‘': 0x91, '’': 0x92, '“': 0x93, '”': 0x94, '•': 0x95, '–': 0x96, '—': 0x97, '˜': 0x98, '™': 0x99, 'š': 0x9A, '›': 0x9B, 'œ': 0x9C, 'ž': 0x9E, 'Ÿ': 0x9F };
 function pdfStr(t) { // Text → WinAnsi-Bytes als PDF-String
   let out = '';
   for (const ch of String(t)) {
@@ -1845,18 +1929,14 @@ class Pdf {
   tw(t, size, bold) { let w = 0; for (const ch of String(t)) w += PDF_W(ch, bold); return (w * size) / 1000; }
   wrap(text, width, size, bold) {
     const lines = [];
-    for (const para of String(text || '').split('\n')) {
+    for (const para of String(text || '').replace(/\t/g, ' ').split('\n')) {
       let line = '';
       for (const word of para.split(/(\s+)/)) {
         if (!word) continue;
-        const test = line + word;
-        if (this.tw(test.trimEnd(), size, bold) <= width || !line.trim()) {
-          if (this.tw(test.trim(), size, bold) > width && !line.trim()) { // überlanges Wort hart umbrechen
-            let part = '';
-            for (const ch of word) { if (this.tw(part + ch, size, bold) > width) { lines.push(part); part = ''; } part += ch; }
-            line = part;
-          } else line = test;
-        } else { lines.push(line.trimEnd()); line = word.trimStart(); }
+        if (this.tw((line + word).trimEnd(), size, bold) <= width) { line += word; continue; }
+        if (/^\s+$/.test(word)) { lines.push(line.trimEnd()); line = ''; continue; }
+        if (line.trim()) { lines.push(line.trimEnd()); line = ''; }
+        for (const ch of word) { if (line && this.tw(line + ch, size, bold) > width) { lines.push(line); line = ''; } line += ch; } // überlanges Wort hart umbrechen
       }
       lines.push(line.trimEnd());
     }
@@ -1917,7 +1997,7 @@ function buildPdf(sel = exportSelection()) {
   d.para('Übersicht', { size: 12.5, bold: true }); d.y += 4; drawHead();
   for (const { p, nr } of sel) {
     const cells = [String(nr), (p.wichtig ? '!! ' : '') + oneLine(p.titel), ownerText(p) || '–', p.frist ? fmtDE(p.frist) : '–', STATUS_LABEL[p.status]];
-    const wrapped = cells.map((t, i) => d.wrap(t, cols[i].w - 8, 9, false));
+    const wrapped = cells.map((t, i) => { const w = d.wrap(t, cols[i].w - 8, 9, false); if (w.length > 6) { w.length = 6; w[5] = w[5].replace(/.{0,2}$/, '') + '…'; } return w; });
     const h = Math.max(...wrapped.map((w) => w.length)) * 11.6 + 6;
     if (d.y + h > d.H - d.M.b) { d.newPage(); drawHead(); }
     let x = L; const y0 = d.y;
@@ -1944,15 +2024,21 @@ function buildPdf(sel = exportSelection()) {
       if (p.loesung.trim()) { d.para('Vorschlag', { x: tx, w: tw, size: 7.5, bold: true, color: gray }); d.para(p.loesung.trim(), { x: tx, w: tw, size: 9.5 }); d.y += 2; }
       if (p.offen.trim()) {
         const lines = d.wrap('Offen: ' + p.offen.trim(), tw - 12, 9.5, false), h = lines.length * 12.5 + 6;
-        d.ensure(h); d.box(tx - 2, d.y - 1, tw + 2, h, [255, 246, 214]); d.y += 3;
-        lines.forEach((l) => { d.text(l, tx + 5, 9.5, { color: [90, 60, 0] }); d.y += 12.5; }); d.y += 5;
+        d.ensure(Math.min(h, 40)); let k = 0;
+        while (k < lines.length) { // Kasten notfalls über mehrere Seiten
+          const room = Math.max(1, Math.floor((d.H - d.M.b - d.y - 6) / 12.5)), chunk = lines.slice(k, k + room);
+          d.box(tx - 2, d.y - 1, tw + 2, chunk.length * 12.5 + 6, [255, 246, 214]); d.y += 3;
+          chunk.forEach((l) => { d.text(l, tx + 5, 9.5, { color: [90, 60, 0] }); d.y += 12.5; }); d.y += 3;
+          k += chunk.length; if (k < lines.length) d.newPage();
+        }
+        d.y += 2;
       }
       if (p.unterpunkte.length) {
         d.para('Unterpunkte', { x: tx, w: tw, size: 7.5, bold: true, color: gray });
         for (const u of p.unterpunkte) {
           const lines = d.wrap(u.text.trim() || '…', tw - 16, 9.5, false);
-          d.ensure(lines.length * 12.5); d.checkbox(tx, 9.5, u.erledigt);
-          lines.forEach((l) => { d.text(l, tx + 15, 9.5, { color: u.erledigt ? [110, 110, 115] : [28, 28, 30] }); d.y += 12.5; });
+          d.ensure(Math.min(lines.length, 3) * 12.5);
+          lines.forEach((l, li) => { d.ensure(12.5); if (!li) d.checkbox(tx, 9.5, u.erledigt); d.text(l, tx + 15, 9.5, { color: u.erledigt ? [110, 110, 115] : [28, 28, 30] }); d.y += 12.5; });
         }
         d.y += 2;
       }
@@ -2123,23 +2209,36 @@ async function editPerson(pid) {
       <input class="field-in" id="pName" type="text" autocapitalize="words" autocomplete="off" placeholder="Name" value="${esc(x.name)}">
       <input class="field-in" id="pMail" type="email" autocapitalize="off" autocomplete="off" inputmode="email" placeholder="E-Mail (optional)" value="${esc(x.email)}"></div>`,
     choices: [{ label: 'Entfernen', value: 'del', cls: 'danger' }, { label: 'Abbrechen', value: null }, { label: 'Sichern', value: 'ok', cls: 'primary' }],
-    read: () => ({ name: $('#pName').value.trim(), email: $('#pMail').value.trim() }) });
+    read: () => ({ name: cleanName($('#pName').value), email: $('#pMail').value.trim() }) });
   if (!r) return;
   if (r === 'del') {
+    const n = data.punkte.filter((p) => isOwner(p, x.name)).length;
+    if (n && !(await choice({ title: `${x.name} entfernen?`, text: `${x.name} ist bei ${n} ${n === 1 ? 'Thema' : 'Themen'} verantwortlich. Dort wird die Person ebenfalls ausgetragen.`, choices: [{ label: 'Entfernen', value: true, cls: 'danger' }] }))) return;
+    makeSnapshot(`Vor dem Entfernen von ${x.name}`);
     data.meeting.personen = personen().filter((y) => y.id !== pid);
     data.punkte.forEach((p) => { p.verantwortliche = p.verantwortliche.filter((v) => !samePerson(v, x.name)); });
+    if (samePerson(prefs.fPerson, x.name)) prefs.fPerson = 'alle';
+    if (samePerson(prefs.exPerson, x.name)) prefs.exPerson = 'alle';
+    savePrefs();
   } else if (r.name) {
-    data.punkte.forEach((p) => { p.verantwortliche = p.verantwortliche.map((v) => (samePerson(v, x.name) ? r.name : v)); });
+    const other = personen().find((y) => y.id !== pid && samePerson(y.name, r.name));
+    data.punkte.forEach((p) => { p.verantwortliche = p.verantwortliche.map((v) => (samePerson(v, x.name) ? r.name : v)).filter((v, i, a) => a.findIndex((y) => samePerson(y, v)) === i); });
     if (samePerson(prefs.fPerson, x.name)) prefs.fPerson = r.name;
-    x.name = r.name; x.email = r.email;
-  }
+    if (samePerson(prefs.exPerson, x.name)) prefs.exPerson = r.name;
+    savePrefs();
+    if (other) { // gleicher Name existiert schon: zusammenlegen
+      if (!other.email && r.email) other.email = r.email;
+      data.meeting.personen = personen().filter((y) => y.id !== pid);
+      toast(`Mit „${other.name}“ zusammengelegt`);
+    } else { x.name = r.name; x.email = r.email; }
+  } else if (r.email !== x.email) { x.email = r.email; } // Name leer gelassen: nur die E-Mail übernehmen
   changed(); renderMeeting(); render();
 }
 async function newPerson(forPoint) {
   const r = await askPerson();
   if (!r) return null;
   let x = personByName(r.name);
-  if (x) { if (r.email) x.email = r.email; } else { x = { id: uid(), name: r.name, email: r.email }; data.meeting.personen.push(x); }
+  if (x) { if (r.email) x.email = r.email; } else { x = { id: nameId(r.name), name: r.name, email: r.email }; if (personen().some((y) => y.id === x.id)) x.id = uid(); data.meeting.personen.push(x); }
   changed();
   if (forPoint && !isOwner(forPoint, x.name)) setOwner(forPoint, x.name);
   if ($('#dlg-meeting').open) renderMeeting();
@@ -2234,7 +2333,14 @@ function bind() {
     if (t.matches && t.matches('[role="button"][data-action]') && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); t.click(); return; }
     if (t.dataset && t.dataset.subtext) { // Unterpunkte: Enter = neue Zeile, Rücktaste in leerer Zeile = Zeile löschen
       const p = byId(t.dataset.id);
-      if (p && e.key === 'Enter') { e.preventDefault(); addSub(p, t.dataset.subtext); return; }
+      if (p && e.key === 'Enter' && !e.isComposing) {
+        e.preventDefault();
+        const u = p.unterpunkte.find((x) => x.id === t.dataset.subtext), pos = t.selectionStart ?? t.value.length;
+        const rest = u && pos < t.value.length ? t.value.slice(pos) : '';
+        if (u && rest) { u.text = t.value.slice(0, pos).trimEnd(); }
+        addSub(p, t.dataset.subtext, rest.trimStart());
+        return;
+      }
       if (p && e.key === 'Backspace' && !t.value) { e.preventDefault(); delSub(p, t.dataset.subtext, true); return; }
     }
     const dlgOpen = $$('dialog').some((d) => d.open);
@@ -2266,7 +2372,7 @@ function bind() {
       const v = el.type === 'checkbox' ? el.checked : el.value;
       if (p[el.dataset.field] === v) return;
       p[el.dataset.field] = v; changed();
-      if (el.dataset.field === 'frist') refreshDetailLive(p);
+      if (el.dataset.field === 'frist') { fristOpen.add(p.id); refreshDetailLive(p); }
       return;
     }
     if (el.dataset.mfield) {
@@ -2281,7 +2387,7 @@ function bind() {
       if (el.dataset.pref === 'exPerson' && e.type === 'change') renderShare();
       return;
     }
-    if (el.id === 'searchInput') { search = el.value; renderCards(); return; }
+    if (el.id === 'searchInput') { if (search !== el.value) { search = el.value; renderCards(); } return; }
     if (el.id === 'fPerson' && e.type === 'change') { prefs.fPerson = el.value; savePrefs(); renderCards(); return; }
     if (el.id === 'fKat' && e.type === 'change') { prefs.fKat = el.value; savePrefs(); renderCards(); return; }
     if (el.id === 'importText') { updateImportPreviewSoon(); return; }
@@ -2296,6 +2402,7 @@ function bind() {
   });
   $$('dialog').forEach((d) => {
     enableSheetDrag(d);
+    d.addEventListener('click', (e) => { if (e.target === d && d.id !== 'dlg-choice' && !d.classList.contains('closing')) { const r = d.getBoundingClientRect(); if (e.clientY < r.top || e.clientY > r.bottom || e.clientX < r.left || e.clientX > r.right) closeDlg(d); } });
     d.addEventListener('cancel', (e) => { e.preventDefault(); closeDlg(d); });
     d.addEventListener('close', () => {
       if (d.ignoreClose) { d.ignoreClose--; return; } // Ende der Ausblend-Bewegung: kein zweites Neuzeichnen
@@ -2317,7 +2424,7 @@ function bind() {
   setInterval(() => { if (document.visibilityState === 'visible' && signedIn()) syncNow(); }, 45000);
   window.addEventListener('storage', (e) => {
     if (e.key !== KEY || !e.newValue) return;
-    try { data = normalizeData(JSON.parse(e.newValue)); setBaseline(); render(); toast('In einem anderen Fenster geändert'); } catch (_) { /* egal */ }
+    try { flushSave(); const inc = normalizeData(JSON.parse(e.newValue)); data = inc.id === data.id ? mergeData(data, inc) : inc; setBaseline(); render(); } catch (_) { /* egal */ }
   });
   let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { measureTopbar(); growAll($('#v-' + prefs.view)); $$('.seg').forEach((sg) => syncSeg(sg, false)); }, 150); });
 }

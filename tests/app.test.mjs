@@ -403,6 +403,12 @@ await openTopic(A.pg, 4);
 await A.pg.click('#v-detail [data-action="delete-point"]');
 await A.pg.waitForTimeout(400); await syncNow(A.pg); await syncNow(B.pg); await syncNow(A.pg);
 ok(!(await pts(B.pg)).some((p) => p.id === delId) && !(await pts(A.pg)).some((p) => p.id === delId), 'Gelöschtes Thema verschwindet auf beiden Geräten');
+await openTopic(A.pg, 5); await A.pg.fill('#f-titel', 'Titel vom iPad');
+await openTopic(B.pg, 5); await B.pg.fill('[data-field="notizen"]', 'Notiz zum selben Thema vom iPhone');
+await A.pg.waitForTimeout(400); await B.pg.waitForTimeout(400);
+await syncNow(A.pg); await syncNow(B.pg); await syncNow(A.pg);
+const qa = (await pts(A.pg))[5], qb = (await pts(B.pg))[5];
+ok(qa.t === 'Titel vom iPad' && qa.n === 'Notiz zum selben Thema vom iPhone' && qb.t === qa.t && qb.n === qa.n, 'Gleichzeitig am selben Thema (Titel hier, Notiz dort): beides bleibt erhalten');
 await B.ctx.setOffline(true);
 await B.pg.evaluate(() => window.dispatchEvent(new Event('offline')));
 await openTopic(B.pg, 0);
@@ -442,15 +448,99 @@ await B.pg.evaluate(async () => { // mit dem Finger im Inhalt nach unten ziehen 
 });
 await B.pg.waitForTimeout(700);
 ok(await B.pg.$eval('#dlg-more', (x) => !x.open), 'iPhone: „…“-Fenster lässt sich aus dem Inhalt nach unten wegziehen');
+await B.pg.click('[data-action="open-more"]'); await B.pg.waitForTimeout(600);
+ok(await B.pg.evaluate(() => { // iOS wertet nur den ersten touchmove aus – der muss schon das Scrollen der Seite verhindern
+  const body = document.querySelector('#dlg-more .dlg-body'), r = body.getBoundingClientRect(), x = r.left + 60, y0 = r.top + 80;
+  const tch = (y) => new Touch({ identifier: 2, target: body, clientX: x, clientY: y });
+  body.dispatchEvent(new TouchEvent('touchstart', { touches: [tch(y0)], bubbles: true, cancelable: true }));
+  const ev = new TouchEvent('touchmove', { touches: [tch(y0 + 3)], bubbles: true, cancelable: true }); body.dispatchEvent(ev);
+  body.dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: [tch(y0 + 3)], bubbles: true, cancelable: true }));
+  return ev.defaultPrevented;
+}), 'iPhone: schon die erste kleine Fingerbewegung gehört dem Fenster, nicht dem Hintergrund');
+await B.pg.waitForTimeout(500);
+await B.pg.mouse.click(195, 20); await B.pg.waitForTimeout(80);
+ok(await B.pg.evaluate(() => document.documentElement.classList.contains('dlg-closing') || !document.querySelector('#dlg-more').open), 'iPhone: Tipp oberhalb des Fensters schließt es');
+ok(await B.pg.evaluate(() => !document.querySelector('dialog[open]:not(.closing)')) , 'iPhone: Während des Ausblendens reagiert der Hintergrund nicht');
+await B.pg.waitForTimeout(600);
 ok((await B.pg.evaluate(() => window.scrollY)) === scrollBefore && !(await B.pg.evaluate(() => document.documentElement.classList.contains('modal-open'))), 'iPhone: Hintergrund hat sich dabei nicht bewegt und ist wieder frei');
 ok(A.errs.length === 0 && B.errs.length === 0, 'Keine Fehler beim Abgleich' + (A.errs.concat(B.errs).length ? ': ' + A.errs.concat(B.errs).join(' | ') : ''));
 await A.ctx.close(); await B.ctx.close();
 
-console.log('\n16) Sauberkeit');
+console.log('\n16) Prüfrunde: Sonderfälle');
+{
+  const pg = await context.newPage();
+  const errs = []; pg.on('pageerror', (e) => errs.push(e.message));
+  await pg.goto(BASE);
+  const evil = '"><img src=x onerror="window.__pwned=1">';
+  await pg.evaluate((evil) => localStorage.setItem('bprot.v1.data', JSON.stringify({ app: 'besprechungsprotokoll', version: 2, id: evil,
+    meeting: { titel: 'Probe', personen: [{ id: evil, name: 'Dr. Eva Test', email: 'eva@example.com' }, { id: 'p2', name: 'Ben Muster', email: '' }] },
+    punkte: [{ id: evil, titel: 'Erstes', verantwortliche: ['Dr. Eva Test'], unterpunkte: [{ id: evil, text: 'Schritt' }], status: 'arbeit' },
+      { id: 'b', titel: 'Zweites mit Suchwort Kühlschrank', verantwortlich: 'Anna Beispiel und Carla Probe', status: 'erledigt' },
+      { id: 'c', titel: 'Drittes', verantwortliche: ['Ben Muster'], kategorie: 'Lager' }] })), evil);
+  await pg.reload(); await pg.waitForTimeout(400);
+  await pg.click('.pt-main >> nth=0'); await pg.waitForTimeout(300); await pg.click('[data-action="back"]'); await pg.waitForTimeout(300);
+  ok(!(await pg.evaluate(() => window.__pwned)) && (await pg.evaluate(() => window.__app.data.punkte.every((p) => /^[\w-]+$/.test(p.id)))), 'Manipulierte Kennungen in einer Datei werden entschärft (kein eingeschleuster Code)');
+  const d = await pg.evaluate(() => window.__app.data);
+  ok(JSON.stringify(d.punkte[1].verantwortliche) === '["Anna Beispiel","Carla Probe"]' && d.punkte[1].besprochen === true, 'Alte Daten: „A und B“ wird zu zwei Verantwortlichen, alt „erledigt“ gilt als besprochen');
+  ok(/^Hallo Eva,/.test((await pg.evaluate(() => window.__app.mailFor('Dr. Eva Test', window.__app.exportSelection('alle', 'Dr. Eva Test')))).body), 'Anrede ohne Titel: „Hallo Eva,“');
+  // Suche: erster Tipp auf ein Ergebnis öffnet es
+  await pg.fill('#searchInput', 'kühlschrank'); await pg.waitForTimeout(150);
+  await pg.click('.pt-main >> nth=0'); await pg.waitForTimeout(300);
+  ok(await pg.evaluate(() => window.__app.data.punkte[1].titel) && (await center(pg)).includes('2 von 3'), 'Suche: der erste Tipp auf ein Ergebnis öffnet das Thema');
+  ok(await pg.$eval('[data-action="step"][data-dir="1"]', (b) => b.disabled) && await pg.$eval('[data-action="step"][data-dir="-1"]', (b) => b.disabled), 'Pfeile springen nur zwischen Suchtreffern');
+  await pg.click('[data-action="back"]'); await pg.fill('#searchInput', ''); await pg.waitForTimeout(150);
+  // Karte ohne „· “ am Anfang
+  ok(await pg.$$eval('.pt-meta', (els) => els.every((e) => !e.innerText.trim().startsWith('·'))), 'Zusatzzeile der Themen beginnt nie mit „·“');
+  // Frist: Datum löschen lässt den Schalter an
+  await pg.click('.pt-main >> nth=2'); await pg.waitForTimeout(250);
+  await pg.click('label:has(#fristToggle)'); await pg.click('#fristChips .chip >> nth=0'); await pg.fill('#f-frist', ''); await pg.waitForTimeout(150);
+  ok(await pg.$eval('#fristToggle', (x) => x.checked) && await pg.$eval('#fristBox', (x) => !x.hidden), 'Frist: Datum gelöscht – Schalter bleibt an, Auswahl bleibt offen');
+  await pg.click('[data-action="back"]');
+  // Person umbenennen auf vorhandenen Namen → zusammenlegen; Filter auf gelöschte Person wird zurückgesetzt
+  await pg.click('[data-action="open-more"]'); await pg.click('#dlg-more [data-action="open-meeting"]'); await pg.waitForTimeout(500);
+  await pg.click('#meetingBody [data-action="edit-person"]:has-text("Carla Probe")'); await pg.fill('#pName', 'ben muster'); await pg.keyboard.press('Enter'); await pg.waitForTimeout(400);
+  const names = await pg.evaluate(() => window.__app.data.meeting.personen.map((x) => x.name));
+  ok(names.filter((n) => n.toLowerCase() === 'ben muster').length === 1 && !names.includes('Carla Probe'), 'Umbenennen auf vorhandenen Namen legt die Personen zusammen (Enter sichert)');
+  await pg.keyboard.press('Escape'); await pg.waitForTimeout(500);
+  await pg.evaluate(() => { const p = JSON.parse(localStorage.getItem('bprot.v1.prefs') || '{}'); p.fPerson = 'Niemand Mehr'; p.fKat = 'Gibt es nicht'; localStorage.setItem('bprot.v1.prefs', JSON.stringify(p)); });
+  await pg.reload(); await pg.waitForTimeout(400);
+  ok((await pg.$$('.pt-main')).length === 3, 'Filter auf nicht mehr vorhandene Person/Kategorie wird zurückgesetzt');
+  // PDF: sehr lange Wörter, riesiger „Offen“-Block und Sonderzeichen bleiben auf der Seite
+  const pdfPath = path.join(OUT, 'pruefrunde.pdf');
+  const bytes = await pg.evaluate(() => {
+    const p = window.__app.data.punkte[0];
+    p.titel = 'Ein ' + 'Überlangeswortohneleerzeichen'.repeat(8) + ' Ende'; p.offen = Array.from({ length: 140 }, (_, i) => 'Offene Frage Nummer ' + (i + 1)).join('\n') + '\nLETZTEOFFENEZEILE';
+    p.loesung = 'Škoda Œuvre™ – 5‰ Gewinn'; p.unterpunkte = [{ id: 'u1', text: 'Langer Unterpunkt '.repeat(120) + 'UNTERPUNKTENDE', erledigt: false }];
+    return Array.from(window.__app.buildPdf(window.__app.exportSelection('alle', 'alle')));
+  });
+  fs.writeFileSync(pdfPath, Buffer.from(bytes));
+  const txt = execFileSync('pdftotext', ['-layout', pdfPath, '-']).toString('utf8');
+  ok(txt.includes('LETZTEOFFENEZEILE') && txt.includes('UNTERPUNKTENDE') && /Seite 3 von/.test(txt), 'PDF: lange Inhalte laufen sauber über mehrere Seiten');
+  ok(txt.includes('Škoda Œuvre™') && txt.includes('‰'), 'PDF: Sonderzeichen wie Š Œ ™ ‰ werden dargestellt');
+  const bbox = execFileSync('pdftotext', ['-bbox', pdfPath, '-']).toString('utf8');
+  const maxX = Math.max(...[...bbox.matchAll(/xMax="([\d.]+)"/g)].map((m) => +m[1])), maxY = Math.max(...[...bbox.matchAll(/yMax="([\d.]+)"/g)].map((m) => +m[1]));
+  ok(maxX <= 595.28 - 40 && maxY <= 841.89 - 20, `PDF: kein Text ragt über den Seitenrand (x≤${maxX.toFixed(0)}, y≤${maxY.toFixed(0)})`);
+  // Abgleich: Personen beider Geräte bleiben erhalten, Umbenennung setzt sich durch
+  const m = await pg.evaluate(() => {
+    const base = window.__app.normalizeData({ app: 'besprechungsprotokoll', version: 2, id: 'same', meeting: { titel: 'X', personen: [{ id: 'a', name: 'Anna', email: '', aktualisiert: 1 }] }, punkte: [] });
+    const L = JSON.parse(JSON.stringify(base)), R = JSON.parse(JSON.stringify(base));
+    L.meeting.personen.push({ id: 'l', name: 'Lena', email: '', aktualisiert: 5 });
+    R.meeting.personen.push({ id: 'r', name: 'Rolf', email: '', aktualisiert: 6 }); R.meeting.personen[0] = { id: 'a', name: 'Anna Neu', email: '', aktualisiert: 7 };
+    R.meeting.titel = 'Neuer Titel'; R.meeting.ts = { titel: 9 };
+    return window.__app.mergeData(L, R).meeting;
+  });
+  ok(m.personen.map((x) => x.name).sort().join(',') === 'Anna Neu,Lena,Rolf' && m.titel === 'Neuer Titel', 'Abgleich: neue Personen beider Geräte bleiben, Umbenennung und Titel setzen sich durch');
+  const stable = await pg.evaluate(() => { const raw = { app: 'besprechungsprotokoll', version: 2, id: 'x', meeting: {}, punkte: [{ id: 'q', titel: 't', verantwortliche: ['Zoe'] }] }; return window.__app.normalizeData(raw).meeting.personen[0].id === window.__app.normalizeData(raw).meeting.personen[0].id; });
+  ok(stable, 'Automatisch angelegte Personen bekommen eine feste Kennung (kein endloses Hochladen)');
+  ok(errs.length === 0, 'Keine Fehler in der Prüfrunde' + (errs.length ? ': ' + errs.join(' | ') : ''));
+  await pg.close();
+}
+
+console.log('\n17) Sauberkeit');
 ok(external.length === 0, 'Ohne Anmeldung keine Anfragen an fremde Server' + (external.length ? ': ' + external.join(', ') : ''));
 ok(errors.length === 0, 'Keine JavaScript-Fehler' + (errors.length ? ':\n    ' + errors.join('\n    ') : ''));
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-ok(!/https?:\/\/(?!www\.w3\.org|login\.microsoftonline\.com|graph\.microsoft\.com|\*\.sharepoint\.com)/.test(html), 'index.html spricht nur mit Microsoft 365 (Anmeldung/OneDrive)');
+ok(!/https?:\/\/(?!www\.w3\.org|login\.microsoftonline\.com|graph\.microsoft\.com|\*\.sharepoint\.com|\*\.1drv\.com)/.test(html), 'index.html spricht nur mit Microsoft 365 (Anmeldung/OneDrive)');
 
 await browser.close();
 server.close();
