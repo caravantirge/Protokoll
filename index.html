@@ -428,7 +428,7 @@ dialog.popover .grabber{display:none}
    OneDrive des Nutzers. Nie auf einem fremden Server.
    ===================================================================== */
 const APP_ID = 'besprechungsprotokoll';
-const APP_VERSION = '4.4';
+const APP_VERSION = '4.5';
 const DATA_VERSION = 2;
 const KEY = 'bprot.v1.data', SNAP_KEY = 'bprot.v1.snapshots', PREF_KEY = 'bprot.v1.prefs';
 
@@ -865,7 +865,19 @@ async function syncNow({ interactive = false } = {}) {
     if (syncAgain) { syncAgain = false; scheduleSync(800); }
   }
 }
-function scheduleSync(ms = 2500) { if (!signedIn()) return; clearTimeout(syncTimer); syncTimer = setTimeout(() => syncNow(), ms); }
+let checking = false;
+async function quickCheck() { // kurzer Blick, ob ein anderes Gerät etwas geändert hat – lädt nur bei Änderung
+  if (checking || syncBusy || syncTimer || dirty || !signedIn() || !navigator.onLine || document.visibilityState !== 'visible') return;
+  if (syncState.s !== 'ok' || !sync.etag) { syncNow(); return; }
+  checking = true;
+  try {
+    const res = await graph(`${SYNC_DIR}/aktuell.json?$select=eTag`);
+    const item = res.ok ? await res.json() : null;
+    if (!res.ok || (item && item.eTag !== sync.etag)) syncNow();
+  } catch (e) { /* nächster Versuch gleich wieder */ }
+  checking = false;
+}
+function scheduleSync(ms = 1500) { if (!signedIn()) return; clearTimeout(syncTimer); syncTimer = setTimeout(() => { syncTimer = 0; syncNow(); }, ms); }
 function setSync(s, msg = '') { syncState = { s, msg }; setSaveState(dirty ? 'pending' : 'saved'); if ($('#dlg-sync') && $('#dlg-sync').open) renderSync(); }
 function syncLabel() {
   const s = syncState.s;
@@ -2431,7 +2443,8 @@ function bind() {
   window.addEventListener('online', () => syncNow());
   window.addEventListener('offline', () => { if (signedIn()) setSync('offline'); });
   document.addEventListener('focusout', () => { if (pendingRender) setTimeout(() => { const a = document.activeElement; if (pendingRender && !(a && a.closest && a.closest('main input, main textarea, main select'))) { pendingRender = false; render(); } }, 0); });
-  setInterval(() => { if (document.visibilityState === 'visible' && signedIn()) syncNow(); }, 45000);
+  setInterval(quickCheck, 5000); // geänderte Stände vom anderen Gerät erscheinen nach wenigen Sekunden
+  window.addEventListener('focus', () => quickCheck());
   window.addEventListener('storage', (e) => {
     if (e.key !== KEY || !e.newValue) return;
     try { flushSave(); const inc = normalizeData(JSON.parse(e.newValue)); data = inc.id === data.id ? mergeData(data, inc) : inc; setBaseline(); render(); } catch (_) { /* egal */ }

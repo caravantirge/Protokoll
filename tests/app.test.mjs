@@ -407,6 +407,8 @@ await A.pg.waitForTimeout(400); await B.pg.waitForTimeout(400);
 await syncNow(A.pg); await syncNow(B.pg); await syncNow(A.pg);
 const qa = (await pts(A.pg))[5], qb = (await pts(B.pg))[5];
 ok(qa.t === 'Titel vom iPad' && qa.n === 'Notiz zum selben Thema vom iPhone' && qb.t === qa.t && qb.n === qa.n, 'Gleichzeitig am selben Thema (Titel hier, Notiz dort): beides bleibt erhalten');
+await openTopic(A.pg, 6); await A.pg.fill('[data-field="notizen"]', 'Automatisch rüber');
+await B.pg.waitForFunction(() => window.__app.data.punkte[6].notizen === 'Automatisch rüber', null, { timeout: 12000 }).then(() => ok(true, 'Automatischer Abgleich: Änderung am iPad erscheint nach wenigen Sekunden auf dem iPhone'), () => ok(false, 'Automatischer Abgleich: Änderung am iPad erscheint nach wenigen Sekunden auf dem iPhone'));
 await B.ctx.setOffline(true);
 await B.pg.evaluate(() => window.dispatchEvent(new Event('offline')));
 await openTopic(B.pg, 0);
