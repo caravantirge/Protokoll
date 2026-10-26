@@ -217,6 +217,11 @@ ok(mail.to === 'anna@example.com' && mail.body.includes('gemeinsam mit Carla Pro
 await page.click('#dlg-share .mail-row >> text=Ben Muster');
 mail = (await page.evaluate(() => window.__mails)).at(-1);
 ok(mail.to === 'ben@example.com' && mail.subject.includes('Dein Thema'), 'E-Mail an Ben nur mit seinem Thema');
+await page.click('#dlg-share [data-action="ex-status"][data-value="alle"]'); await page.waitForTimeout(150);
+await page.click('#dlg-share [data-action="mail-selection"]');
+mail = (await page.evaluate(() => window.__mails)).at(-1);
+ok(mail.url.length > 4000 && decodeURIComponent(mail.url.split('&body=')[1] || '').includes('Rückmeldungen an Kunden') && mail.url.includes('%0D%0A'), `Lange E-Mail (alle Themen, ${mail.url.length} Zeichen): Text steht vollständig im Mail-Link, Zeilenumbrüche als CRLF`);
+await page.click('#dlg-share [data-action="ex-status"][data-value="offen"]'); await page.waitForTimeout(150);
 let [dl] = await Promise.all([page.waitForEvent('download'), page.click('#dlg-share [data-action="csv"]')]);
 const csv = fs.readFileSync(await dl.path());
 fs.writeFileSync(path.join(OUT, dl.suggestedFilename()), csv);

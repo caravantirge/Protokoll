@@ -432,7 +432,7 @@ dialog.popover .grabber{display:none}
    OneDrive des Nutzers. Nie auf einem fremden Server.
    ===================================================================== */
 const APP_ID = 'besprechungsprotokoll';
-const APP_VERSION = '4.6';
+const APP_VERSION = '4.7';
 const DATA_VERSION = 2;
 const KEY = 'bprot.v1.data', SNAP_KEY = 'bprot.v1.snapshots', PREF_KEY = 'bprot.v1.prefs';
 
@@ -1901,13 +1901,13 @@ function mailSelection() {
   return { to: '', subject: `${selectionLabel()} – ${meetingLine()}`, body: buildText(sel) + (data.meeting.absender ? '\nViele Grüße\n' + data.meeting.absender : '') };
 }
 function openMail({ to, subject, body }) {
-  const url = `mailto:${encodeURIComponent(to).replace(/%40/g, '@')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  const enc = (t) => encodeURIComponent(String(t).replace(/\r?\n/g, '\r\n')); // Zeilenumbrüche als CRLF – so übernehmen auch Outlook & Co. den Text
+  const head = `mailto:${encodeURIComponent(to).replace(/%40/g, '@')}?subject=${enc(subject)}`;
+  const url = head + '&body=' + enc(body);
   if (window.__mailHook) { window.__mailHook({ to, subject, body, url }); return; } // für Tests
-  if (url.length > 7000) { // sehr lange Links schneiden manche Mail-Apps ab: Text über die Zwischenablage
-    copyText(body).then((ok) => toast(ok ? 'Der Text ist lang – er liegt in der Zwischenablage. In der E-Mail einfach einfügen.' : 'Der Text ist zu lang für eine E-Mail. Bitte „Text kopieren“ nutzen.', { timeout: 9000 }));
-    return launchMail(`mailto:${encodeURIComponent(to).replace(/%40/g, '@')}?subject=${encodeURIComponent(subject)}`);
-  }
-  launchMail(url);
+  // Text immer zusätzlich in die Zwischenablage: Fehlt er in der Mail-App, einfach einfügen
+  copyText(body).then((ok) => { if (ok) toast('Text steht in der E-Mail. Falls nicht: lange tippen → Einfügen.', { timeout: 7000 }); });
+  launchMail(url.length > 100000 ? head : url);
 }
 function launchMail(url) {
   const a = document.createElement('a'); a.href = url; a.rel = 'noopener'; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 1000);
