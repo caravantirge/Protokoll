@@ -236,7 +236,9 @@ const pdfB64 = await page.evaluate(() => { const b = window.__app.buildPdf(); le
 const pdfPath = path.join(OUT, 'themen-nach-person.pdf');
 fs.writeFileSync(pdfPath, Buffer.from(pdfB64, 'base64'));
 const pdfText = execFileSync('pdftotext', ['-layout', pdfPath, '-']).toString('utf8');
-ok(pdfText.includes('Test-Runde Werkstatt') && pdfText.includes('Carla Probe (2)') && pdfText.includes('Anna Beispiel (1)') && pdfText.includes('Ben Muster (1)'), 'PDF-Datei: echtes PDF, nach Person gegliedert (gemeinsames Thema bei beiden)');
+ok(pdfText.includes('Test-Runde Werkstatt') && !pdfText.includes('Übersicht') && !pdfText.includes('Carla Probe (2)'), 'PDF-Datei: echtes PDF, ohne doppelte Übersicht/Gliederung');
+{ const titles = [...pdfText.matchAll(/^\s*(\d+)\.\s+\S/gm)].map((m) => m[1]); ok(titles.length > 0 && new Set(titles).size === titles.length, `PDF: jedes Thema genau einmal (${titles.length} Themen)`); }
+ok((pdfText.match(/Vorschlag/g) || []).length >= 1 && /Verantwortlich: (Anna Beispiel, Carla Probe|Carla Probe, Anna Beispiel)/.test(pdfText), 'PDF: Vorschlag und alle Verantwortlichen direkt am Thema');
 ok(pdfText.includes('Anträge') && !pdfText.includes('Rückstau') && pdfText.includes('Seite 1 von'), 'PDF: Umlaute korrekt, Notizen nur auf Wunsch, Seitenzahlen');
 const [pdfDl] = await Promise.all([page.waitForEvent('download'), page.click('#dlg-share [data-action="pdf"]')]);
 ok(pdfDl.suggestedFilename().endsWith('.pdf'), '„PDF erstellen“ liefert eine Datei (' + pdfDl.suggestedFilename() + ')');

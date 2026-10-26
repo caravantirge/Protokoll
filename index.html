@@ -432,7 +432,7 @@ dialog.popover .grabber{display:none}
    OneDrive des Nutzers. Nie auf einem fremden Server.
    ===================================================================== */
 const APP_ID = 'besprechungsprotokoll';
-const APP_VERSION = '4.7';
+const APP_VERSION = '4.8';
 const DATA_VERSION = 2;
 const KEY = 'bprot.v1.data', SNAP_KEY = 'bprot.v1.snapshots', PREF_KEY = 'bprot.v1.prefs';
 
@@ -2017,60 +2017,43 @@ function buildPdf(sel = exportSelection()) {
   const head = [m.datum ? fmtDate(m.datum) : '', m.ort].filter(Boolean).join(' · ');
   if (head) d.para(head, { size: 10, color: [58, 58, 60] });
   d.para(`${selectionLabel()} – ${sel.length} ${sel.length === 1 ? 'Thema' : 'Themen'}`, { size: 10, bold: true }); d.y += 6; d.rule(); d.y += 14;
-  // Übersicht als Tabelle
-  const cols = [{ t: 'Nr.', w: 24 }, { t: 'Thema', w: d.width - 24 - 112 - 58 - 72 }, { t: 'Verantwortlich', w: 112 }, { t: 'Frist', w: 58 }, { t: 'Status', w: 72 }];
-  const drawHead = () => { let x = L; d.ensure(30); cols.forEach((c) => { d.text(c.t, x, 8, { bold: true, color: gray }); x += c.w; }); d.y += 12; d.rule(L, d.W - d.M.r, 28, 0.8); d.y += 5; };
-  d.para('Übersicht', { size: 12.5, bold: true }); d.y += 4; drawHead();
+  // Jedes Thema genau einmal, in der Reihenfolge der Liste – mit Verantwortlichen, Vorschlag, Offen und Unterpunkten
+  const who = null;
   for (const { p, nr } of sel) {
-    const cells = [String(nr), (p.wichtig ? '!! ' : '') + oneLine(p.titel), ownerText(p) || '–', p.frist ? fmtDE(p.frist) : '–', STATUS_LABEL[p.status]];
-    const wrapped = cells.map((t, i) => { const w = d.wrap(t, cols[i].w - 8, 9, false); if (w.length > 6) { w.length = 6; w[5] = w[5].replace(/.{0,2}$/, '') + '…'; } return w; });
-    const h = Math.max(...wrapped.map((w) => w.length)) * 11.6 + 6;
-    if (d.y + h > d.H - d.M.b) { d.newPage(); drawHead(); }
-    let x = L; const y0 = d.y;
-    wrapped.forEach((lines, i) => { d.y = y0; lines.forEach((l) => { d.text(l, x, 9); d.y += 11.6; }); x += cols[i].w; });
-    d.y = y0 + h; d.rule(L, d.W - d.M.r, 214); d.y += 5;
-  }
-  // Themen im Einzelnen, bei „Alle Personen“ nach Person gegliedert
-  const groups = prefs.exPerson === 'alle' ? groupByPerson(sel) : [[null, sel]];
-  for (const [who, list] of groups) {
-    d.y += 14; d.ensure(60);
-    d.para(who === null ? 'Im Einzelnen' : `${who || 'Ohne Verantwortlichen'} (${list.length})`, { size: 12.5, bold: true }); d.y += 2;
-    for (const { p, nr } of list) {
-      d.ensure(56); d.y += 4; d.rule(); d.y += 8;
-      const tx = L + 22, tw = d.width - 22;
-      d.text(nr + '.', L, 10.5, { bold: true });
-      d.para((p.wichtig ? '!! ' : '') + (p.titel.trim() || 'Ohne Titel'), { x: tx, w: tw, size: 10.5, bold: true });
-      const meta = [STATUS_LABEL[p.status]];
-      if (who === null) meta.push('Verantwortlich: ' + (ownerText(p) || '–'));
-      else if (p.verantwortliche.length > 1) meta.push('gemeinsam mit ' + p.verantwortliche.filter((v) => !samePerson(v, who)).join(', '));
-      if (p.frist) meta.push('bis ' + fmtDate(p.frist));
-      if (p.unterpunkte.length) meta.push(`${subDone(p)}/${p.unterpunkte.length} Unterpunkte erledigt`);
-      meta.push(p.kategorie); if (p.besprochen) meta.push('besprochen');
-      d.para(meta.join(' · '), { x: tx, w: tw, size: 8.5, color: [110, 110, 115] }); d.y += 3;
-      if (p.loesung.trim()) { d.para('Vorschlag', { x: tx, w: tw, size: 7.5, bold: true, color: gray }); d.para(p.loesung.trim(), { x: tx, w: tw, size: 9.5 }); d.y += 2; }
-      if (p.offen.trim()) {
-        const lines = d.wrap('Offen: ' + p.offen.trim(), tw - 12, 9.5, false), h = lines.length * 12.5 + 6;
-        d.ensure(Math.min(h, 40)); let k = 0;
-        while (k < lines.length) { // Kasten notfalls über mehrere Seiten
-          const room = Math.max(1, Math.floor((d.H - d.M.b - d.y - 6) / 12.5)), chunk = lines.slice(k, k + room);
-          d.box(tx - 2, d.y - 1, tw + 2, chunk.length * 12.5 + 6, [255, 246, 214]); d.y += 3;
-          chunk.forEach((l) => { d.text(l, tx + 5, 9.5, { color: [90, 60, 0] }); d.y += 12.5; }); d.y += 3;
-          k += chunk.length; if (k < lines.length) d.newPage();
-        }
-        d.y += 2;
+    d.ensure(56); d.y += 4; d.rule(); d.y += 8;
+    const tx = L + 22, tw = d.width - 22;
+    d.text(nr + '.', L, 10.5, { bold: true });
+    d.para((p.wichtig ? '!! ' : '') + (p.titel.trim() || 'Ohne Titel'), { x: tx, w: tw, size: 10.5, bold: true });
+    const meta = [STATUS_LABEL[p.status]];
+    if (who === null) meta.push('Verantwortlich: ' + (ownerText(p) || '–'));
+    else if (p.verantwortliche.length > 1) meta.push('gemeinsam mit ' + p.verantwortliche.filter((v) => !samePerson(v, who)).join(', '));
+    if (p.frist) meta.push('bis ' + fmtDate(p.frist));
+    if (p.unterpunkte.length) meta.push(`${subDone(p)}/${p.unterpunkte.length} Unterpunkte erledigt`);
+    meta.push(p.kategorie); if (p.besprochen) meta.push('besprochen');
+    d.para(meta.join(' · '), { x: tx, w: tw, size: 8.5, color: [110, 110, 115] }); d.y += 3;
+    if (p.loesung.trim()) { d.para('Vorschlag', { x: tx, w: tw, size: 7.5, bold: true, color: gray }); d.para(p.loesung.trim(), { x: tx, w: tw, size: 9.5 }); d.y += 2; }
+    if (p.offen.trim()) {
+      const lines = d.wrap('Offen: ' + p.offen.trim(), tw - 12, 9.5, false), h = lines.length * 12.5 + 6;
+      d.ensure(Math.min(h, 40)); let k = 0;
+      while (k < lines.length) { // Kasten notfalls über mehrere Seiten
+        const room = Math.max(1, Math.floor((d.H - d.M.b - d.y - 6) / 12.5)), chunk = lines.slice(k, k + room);
+        d.box(tx - 2, d.y - 1, tw + 2, chunk.length * 12.5 + 6, [255, 246, 214]); d.y += 3;
+        chunk.forEach((l) => { d.text(l, tx + 5, 9.5, { color: [90, 60, 0] }); d.y += 12.5; }); d.y += 3;
+        k += chunk.length; if (k < lines.length) d.newPage();
       }
-      if (p.unterpunkte.length) {
-        d.para('Unterpunkte', { x: tx, w: tw, size: 7.5, bold: true, color: gray });
-        for (const u of p.unterpunkte) {
-          const lines = d.wrap(u.text.trim() || '…', tw - 16, 9.5, false);
-          d.ensure(Math.min(lines.length, 3) * 12.5);
-          lines.forEach((l, li) => { d.ensure(12.5); if (!li) d.checkbox(tx, 9.5, u.erledigt); d.text(l, tx + 15, 9.5, { color: u.erledigt ? [110, 110, 115] : [28, 28, 30] }); d.y += 12.5; });
-        }
-        d.y += 2;
-      }
-      if (prefs.exNotes && p.notizen.trim()) { d.para('Notizen', { x: tx, w: tw, size: 7.5, bold: true, color: gray }); d.para(p.notizen.trim(), { x: tx, w: tw, size: 9.5 }); }
-      d.y += 4;
+      d.y += 2;
     }
+    if (p.unterpunkte.length) {
+      d.para('Unterpunkte', { x: tx, w: tw, size: 7.5, bold: true, color: gray });
+      for (const u of p.unterpunkte) {
+        const lines = d.wrap(u.text.trim() || '…', tw - 16, 9.5, false);
+        d.ensure(Math.min(lines.length, 3) * 12.5);
+        lines.forEach((l, li) => { d.ensure(12.5); if (!li) d.checkbox(tx, 9.5, u.erledigt); d.text(l, tx + 15, 9.5, { color: u.erledigt ? [110, 110, 115] : [28, 28, 30] }); d.y += 12.5; });
+      }
+      d.y += 2;
+    }
+    if (prefs.exNotes && p.notizen.trim()) { d.para('Notizen', { x: tx, w: tw, size: 7.5, bold: true, color: gray }); d.para(p.notizen.trim(), { x: tx, w: tw, size: 9.5 }); }
+    d.y += 4;
   }
   const stand = 'Stand: ' + new Date().toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' }) + (m.absender ? ' · ' + m.absender : '');
   return d.bytes(stand);
