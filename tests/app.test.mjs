@@ -468,6 +468,22 @@ await A.ctx.close(); await B.ctx.close();
 
 console.log('\n16) Prüfrunde: Sonderfälle');
 {
+  for (const [w, h, name] of [[1180, 820, 'ipad'], [390, 844, 'iphone']]) {
+    const ctx = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 2, hasTouch: true, userAgent: IPAD_UA, locale: 'de-DE', serviceWorkers: 'block' });
+    const pg = await ctx.newPage(); await pg.goto(BASE); await pg.click('[data-action="load-sample"]'); await pg.waitForTimeout(400);
+    const n = await pg.$$eval('.pt-sub', (els) => els.length);
+    ok(n > 5 && (await pg.textContent('.pt-sub')).includes('Feste Zuständigkeit'), `${name}: Vorschläge stehen klein unter den Themen`);
+    ok(await pg.$$eval('.pt-sub', (els) => els.every((e) => e.getBoundingClientRect().height < 2 * parseFloat(getComputedStyle(e).lineHeight) + 2)), `${name}: höchstens zwei Zeilen je Vorschlag`);
+    ok(!(await pg.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)), `${name}: kein seitliches Scrollen`);
+    await pg.screenshot({ path: path.join(OUT, `30-${name}-vorschlaege.png`) });
+    await pg.click('[data-action="toggle-vorschlag"]'); await pg.waitForTimeout(200);
+    ok((await pg.$$('.pt-sub')).length === 0, `${name}: Schalter „Vorschläge“ blendet sie aus`);
+    await pg.reload(); await pg.waitForTimeout(300);
+    ok((await pg.$$('.pt-sub')).length === 0 && (await pg.getAttribute('[data-action="toggle-vorschlag"]', 'aria-pressed')) === 'false', `${name}: Einstellung bleibt nach Neustart erhalten`);
+    await ctx.close();
+  }
+}
+{
   const pg = await context.newPage();
   await pg.addInitScript(() => { // Bildschirm-Sperre nachbilden
     window.__wake = 0;

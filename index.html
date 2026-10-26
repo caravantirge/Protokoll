@@ -186,6 +186,10 @@ input.switch:checked::after{transform:translateX(20px)}
 .pt-title{font-weight:500;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .prio-mark{color:var(--red);font-weight:700;margin-right:3px}
 .pt-meta{margin-top:3px;font-size:.8rem;color:var(--muted)}
+.pt-sub{margin-top:3px;font-size:.84rem;line-height:1.35;color:var(--muted-2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pt-sub .o{color:var(--orange)}
+button.pill{min-height:36px;padding:0 14px;border-radius:9px;background:var(--fill);font-size:.9rem;font-weight:500;color:var(--text)}
+button.pill[aria-pressed="true"]{background:var(--blue);color:#fff}
 .pt-meta .miss{color:var(--orange)}
 .pt-meta .new{color:var(--blue)}
 .status{flex:none;font-size:.82rem;font-weight:600;white-space:nowrap}
@@ -428,7 +432,7 @@ dialog.popover .grabber{display:none}
    OneDrive des Nutzers. Nie auf einem fremden Server.
    ===================================================================== */
 const APP_ID = 'besprechungsprotokoll';
-const APP_VERSION = '4.5';
+const APP_VERSION = '4.6';
 const DATA_VERSION = 2;
 const KEY = 'bprot.v1.data', SNAP_KEY = 'bprot.v1.snapshots', PREF_KEY = 'bprot.v1.prefs';
 
@@ -547,7 +551,7 @@ function tidyPeople(d) { // keine doppelten Personen; jede verantwortliche Perso
 /* ---------- Zustand ---------- */
 let data = emptyData();
 let prefs = {};
-const PREF_DEFAULTS = { theme: 'auto', scale: 1, wake: true, view: 'list', focusId: null, fStatus: 'alle', fPerson: 'alle', fKat: 'alle', exStatus: 'alle', exPerson: 'alle', exNotes: false, safariHintDismissed: false };
+const PREF_DEFAULTS = { theme: 'auto', scale: 1, wake: true, view: 'list', focusId: null, fStatus: 'alle', fPerson: 'alle', fKat: 'alle', exStatus: 'alle', exPerson: 'alle', exNotes: false, safariHintDismissed: false, showVorschlag: true };
 let search = '';
 let reorder = false;
 let editProposal = false;
@@ -1248,6 +1252,7 @@ function renderList() {
         <option value="${NOBODY}" ${prefs.fPerson === NOBODY ? 'selected' : ''}>Ohne Verantwortlichen</option>
       </select>
       ${usedKats.length > 1 ? `<select class="pill" id="fKat" aria-label="Kategorie"><option value="alle">Alle Kategorien</option>${usedKats.map((k) => `<option value="${esc(k)}" ${prefs.fKat === k ? 'selected' : ''}>${esc(k)}</option>`).join('')}</select>` : ''}
+      <button class="pill" data-action="toggle-vorschlag" aria-pressed="${!!prefs.showVorschlag}">Vorschläge</button>
       <button class="plain strong" data-action="toggle-reorder" style="min-height:36px">${reorder ? 'Fertig' : 'Sortieren'}</button>
     </div>
     <div class="group" id="cards"></div></div>`;
@@ -1269,6 +1274,7 @@ function renderCards() {
       <div class="pt-main" role="button" tabindex="0" data-action="open-point" data-id="${p.id}" aria-label="Thema ${nr} öffnen">
         <div class="pt-body">
           <div class="pt-title">${p.wichtig ? '<span class="prio-mark" title="Wichtig">!!</span>' : ''}${esc(oneLine(p.titel)) || '<span class="muted">Ohne Titel</span>'}</div>
+          ${prefs.showVorschlag && (p.loesung.trim() || p.offen.trim()) ? `<div class="pt-sub">${esc(oneLine(p.loesung))}${p.offen.trim() ? `${p.loesung.trim() ? ' · ' : ''}<span class="o">Offen: ${esc(oneLine(p.offen))}</span>` : ''}</div>` : ''}
           <div class="pt-meta">${p.status !== 'offen' ? `<span class="st-inline"><span class="status st-${p.status}">${STATUS_LABEL[p.status]}</span>${meta.some(Boolean) ? ' · ' : ''}</span>` : ''}${meta.filter(Boolean).join(' · ')}</div>
         </div>
         ${p.status !== 'offen' ? `<span class="status st-${p.status}">${STATUS_LABEL[p.status]}</span>` : ''}
@@ -2289,6 +2295,7 @@ const ACTIONS = {
   'delete-point': (el) => deletePoint(el.dataset.id),
   move: (el) => movePoint(el.dataset.id, +el.dataset.dir),
   'toggle-reorder': () => { reorder = !reorder; renderList(); },
+  'toggle-vorschlag': (el) => { prefs.showVorschlag = !prefs.showVorschlag; savePrefs(); el.setAttribute('aria-pressed', String(prefs.showVorschlag)); renderCards(); },
   'filter-status': (el) => { prefs.fStatus = el.dataset.value; savePrefs(); renderList(); },
   'clear-filter': () => { resetFilters(); savePrefs(); render(); },
   'open-meeting': () => { closeSheets(); openDialog('dlg-meeting'); },
