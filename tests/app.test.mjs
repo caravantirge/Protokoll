@@ -467,6 +467,22 @@ await A.ctx.close(); await B.ctx.close();
 console.log('\n16) Prüfrunde: Sonderfälle');
 {
   const pg = await context.newPage();
+  await pg.addInitScript(() => { // Bildschirm-Sperre nachbilden
+    window.__wake = 0;
+    Object.defineProperty(navigator, 'wakeLock', { value: { request: async () => { window.__wake++; const l = new EventTarget(); l.release = async () => { window.__wake--; }; return l; } } });
+  });
+  await pg.goto(BASE); await pg.waitForTimeout(300);
+  const held = () => pg.evaluate(() => window.__wake);
+  ok((await held()) === 1, 'Bildschirm bleibt an, solange nichts bearbeitet wird');
+  if (!(await pg.$('.pt-main'))) await pg.click('[data-action="load-sample"]');
+  await pg.click('.pt-main >> nth=0'); await pg.click('#f-titel'); await pg.waitForTimeout(150);
+  ok((await held()) === 0, 'Beim Schreiben ist die Sperre aus – Diktieren über die Tastatur bleibt möglich');
+  await pg.click('[data-action="back"]'); await pg.waitForTimeout(150);
+  ok((await held()) === 1, 'Nach dem Schreiben bleibt der Bildschirm wieder an');
+  await pg.close();
+}
+{
+  const pg = await context.newPage();
   const errs = []; pg.on('pageerror', (e) => errs.push(e.message));
   await pg.goto(BASE);
   const evil = '"><img src=x onerror="window.__pwned=1">';

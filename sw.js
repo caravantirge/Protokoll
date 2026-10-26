@@ -1,7 +1,7 @@
 /* Service Worker: macht die App offline-fähig.
    Es werden NUR die App-Dateien zwischengespeichert – niemals Protokolldaten
    (die liegen ausschließlich im localStorage des Geräts). */
-const CACHE = 'protokoll-v8';
+const CACHE = 'protokoll-v9';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-180.png', './icon-192.png', './icon-512.png', './icon-maskable-512.png'];
 
 self.addEventListener('install', (e) => {

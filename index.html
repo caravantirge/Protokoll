@@ -428,7 +428,7 @@ dialog.popover .grabber{display:none}
    OneDrive des Nutzers. Nie auf einem fremden Server.
    ===================================================================== */
 const APP_ID = 'besprechungsprotokoll';
-const APP_VERSION = '4.3';
+const APP_VERSION = '4.4';
 const DATA_VERSION = 2;
 const KEY = 'bprot.v1.data', SNAP_KEY = 'bprot.v1.snapshots', PREF_KEY = 'bprot.v1.prefs';
 
@@ -1576,13 +1576,21 @@ function renderMore() {
 }
 
 /* ---------- Bildschirm anlassen ---------- */
-let wakeLock = null;
+let wakeLock = null, wakeBusy = false, wakeAgain = false;
+const editingText = () => { const a = document.activeElement; return !!(a && a.matches && a.matches('input:not([type=checkbox]):not([type=radio]):not([type=button]),textarea,[contenteditable="true"]')); };
 async function updateWakeLock() {
-  const want = prefs.wake && document.visibilityState === 'visible';
+  // Beim Schreiben aus: Die Sperre blockiert auf dem iPad sonst das Diktieren über die Tastatur
+  if (wakeBusy) { wakeAgain = true; return; } wakeBusy = true;
   try {
-    if (want && !wakeLock && 'wakeLock' in navigator) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); }
-    else if (!want && wakeLock) { await wakeLock.release(); wakeLock = null; }
+    for (let i = 0; i < 3; i++) {
+      const want = prefs.wake && document.visibilityState === 'visible' && !editingText();
+      if (want && !wakeLock && 'wakeLock' in navigator) { const l = await navigator.wakeLock.request('screen'); wakeLock = l; l.addEventListener('release', () => { if (wakeLock === l) wakeLock = null; }); }
+      else if (!want && wakeLock) { const l = wakeLock; wakeLock = null; await l.release(); }
+      else break;
+    }
   } catch (e) { wakeLock = null; }
+  wakeBusy = false;
+  if (wakeAgain) { wakeAgain = false; updateWakeLock(); }
 }
 
 /* ---------- Dialoge ---------- */
@@ -2418,6 +2426,8 @@ function bind() {
     updateWakeLock();
   });
   window.addEventListener('pagehide', () => flushSave());
+  document.addEventListener('focusin', () => updateWakeLock());
+  document.addEventListener('focusout', () => setTimeout(updateWakeLock, 0));
   window.addEventListener('online', () => syncNow());
   window.addEventListener('offline', () => { if (signedIn()) setSync('offline'); });
   document.addEventListener('focusout', () => { if (pendingRender) setTimeout(() => { const a = document.activeElement; if (pendingRender && !(a && a.closest && a.closest('main input, main textarea, main select'))) { pendingRender = false; render(); } }, 0); });
